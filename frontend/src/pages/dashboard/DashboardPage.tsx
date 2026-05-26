@@ -60,13 +60,13 @@ export default function DashboardPage() {
       <Title order={2}>Dashboard</Title>
 
       <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
-        <SummaryCard label="Total Revenue" value={formatCurrency(summary?.total_revenue)} color="blue" />
+        <SummaryCard label="Total Revenue" value={formatCurrency(summary?.total_revenue)} color="brand" />
         <SummaryCard label="Total Cost" value={formatCurrency(summary?.total_cost)} />
         <SummaryCard label="Total Profit" value={formatCurrency(summary?.total_profit)} color={profitColor} />
         <SummaryCard
           label="Overall Margin"
           value={summary?.overall_margin_pct != null ? formatPercent(summary.overall_margin_pct) : "—"}
-          color="violet"
+          color="brand"
         />
       </SimpleGrid>
 
@@ -80,7 +80,7 @@ export default function DashboardPage() {
             data={chartData}
             dataKey="product"
             series={[
-              { name: "Revenue", color: "blue.6" },
+              { name: "Revenue", color: "brand.6" },
               { name: "Cost", color: "gray.5" },
               { name: "Profit", color: "green.6" },
             ]}

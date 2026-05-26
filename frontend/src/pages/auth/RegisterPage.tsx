@@ -62,7 +62,7 @@ export default function RegisterPage() {
   });
 
   return (
-    <Center style={{ minHeight: "100vh" }} bg="gray.0">
+    <Center style={{ minHeight: "100vh", backgroundColor: "#fcf6ef" }}>
       <Box w={440} p="md">
         <Stack align="center" mb="xl">
           <Title order={2}>Create your account</Title>

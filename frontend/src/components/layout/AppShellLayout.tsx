@@ -55,14 +55,19 @@ export function AppShellLayout() {
       header={{ height: 60 }}
       navbar={{ width: 240, breakpoint: "sm", collapsed: { mobile: !opened } }}
       padding="md"
+      styles={{
+        header: { backgroundColor: "#fcf6ef" },
+        navbar: { backgroundColor: "#fcf6ef" },
+        main: { backgroundColor: "#fcf6ef" },
+      }}
     >
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
           <Group>
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
             <Group gap="xs">
-              <IconChartBar size={24} color="var(--mantine-color-blue-6)" />
-              <Title order={4} fw={700}>
+              <IconChartBar size={24} color="#002c10" />
+              <Title order={4} fw={700} c="#002c10">
                 Kaizntree
               </Title>
             </Group>
@@ -71,7 +76,7 @@ export function AppShellLayout() {
             <Menu.Target>
               <UnstyledButton>
                 <Group gap="xs">
-                  <Avatar size="sm" color="blue" radius="xl">
+                  <Avatar size="sm" color="brand" radius="xl">
                     {user?.username?.[0]?.toUpperCase() ?? "U"}
                   </Avatar>
                   <Text size="sm" visibleFrom="sm">

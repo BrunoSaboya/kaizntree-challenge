@@ -50,7 +50,7 @@ export default function LoginPage() {
   });
 
   return (
-    <Center style={{ minHeight: "100vh" }} bg="gray.0">
+    <Center style={{ minHeight: "100vh", backgroundColor: "#fcf6ef" }}>
       <Box w={420} p="md">
         <Stack align="center" mb="xl">
           <Title order={2}>Welcome back</Title>
