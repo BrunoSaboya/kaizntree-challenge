@@ -48,7 +48,15 @@ export default function RegisterPage() {
       navigate("/");
     },
     onError: (error: any) => {
-      const detail = error?.response?.data?.email?.[0] || "Registration failed. Please try again.";
+      const data = error?.response?.data;
+      const detail =
+        data?.email?.[0] ??
+        data?.password?.[0] ??
+        data?.username?.[0] ??
+        data?.password_confirm?.[0] ??
+        data?.non_field_errors?.[0] ??
+        data?.detail ??
+        "Registration failed. Please try again.";
       notifications.show({ title: "Error", message: detail, color: "red" });
     },
   });

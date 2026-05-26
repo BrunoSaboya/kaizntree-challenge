@@ -11,8 +11,7 @@ from apps.orders.tests.factories import PurchaseOrderFactory, SalesOrderFactory
 def make_confirmed_po(product, quantity, cost_per_unit):
     po = PurchaseOrderFactory(product=product, owner=product.owner, quantity=quantity, cost_per_unit=cost_per_unit)
     from apps.orders.services import confirm_purchase_order
-    confirm_purchase_order(po, f"LOT-{po.pk}")
-    return po
+    return confirm_purchase_order(po, f"LOT-{po.pk}")
 
 
 def make_confirmed_so(product, stock, quantity, price_per_unit):

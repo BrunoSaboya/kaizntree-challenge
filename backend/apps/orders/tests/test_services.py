@@ -102,7 +102,6 @@ class TestConfirmSalesOrder:
 
     def test_no_stock_on_draft_confirm_raises(self, db):
         product = ProductFactory()
-        so = SalesOrderFactory.__new__(SalesOrderFactory)
         from apps.orders.models import SalesOrder
         import datetime
         so = SalesOrder.objects.create(

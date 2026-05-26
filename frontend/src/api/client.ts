@@ -52,7 +52,6 @@ api.interceptors.response.use(
       } catch {
         useAuthStore.getState().clearAuth();
         pendingRequests = [];
-        window.location.href = "/login";
         return Promise.reject(error);
       } finally {
         isRefreshing = false;

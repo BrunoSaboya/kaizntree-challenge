@@ -15,7 +15,15 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "total_stock", "created_at", "updated_at"]
 
     def validate_sku(self, value):
-        return value.upper().strip()
+        value = value.upper().strip()
+        request = self.context.get("request")
+        if request and request.user:
+            qs = Product.objects.filter(owner=request.user, sku=value)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError("A product with this SKU already exists.")
+        return value
 
 
 class StockSerializer(serializers.ModelSerializer):
