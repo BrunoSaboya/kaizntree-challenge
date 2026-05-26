@@ -1,6 +1,6 @@
 # Kaizntree Inventory Management System
 
-A full-stack inventory management platform for F&B CPG brands — built as a take-home challenge for Kaizntree.
+A full-stack inventory management platform for F&B CPG brands
 
 ## Quick Start
 
