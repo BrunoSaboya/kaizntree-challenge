@@ -1,0 +1,40 @@
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+*.egg
+.venv/
+venv/
+*.pyc
+
+# Django
+staticfiles/
+media/
+db.sqlite3
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docker
+*.override.yml.local
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/

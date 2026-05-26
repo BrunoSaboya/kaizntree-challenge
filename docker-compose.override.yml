@@ -1,0 +1,21 @@
+services:
+  backend:
+    build:
+      target: development
+    volumes:
+      - ./backend:/app
+    environment:
+      DJANGO_SETTINGS_MODULE: kaizntree.settings.development
+      DJANGO_DEBUG: "True"
+    command: python manage.py runserver 0.0.0.0:8000
+
+  frontend:
+    build:
+      target: development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
