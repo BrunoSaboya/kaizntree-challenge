@@ -13,13 +13,13 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconBox,
-  IconChartBar,
   IconHome,
   IconLogout,
   IconPackage,
   IconShoppingCart,
   IconTruckDelivery,
 } from "@tabler/icons-react";
+import logo from "@/assets/kaizntree_logo.svg";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -66,7 +66,7 @@ export function AppShellLayout() {
           <Group>
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
             <Group gap="xs">
-              <IconChartBar size={24} color="#002c10" />
+              <img src={logo} alt="Kaizntree logo" width={28} height={28} style={{ borderRadius: '50%' }} />
               <Title order={4} fw={700} c="#002c10">
                 Kaizntree
               </Title>
