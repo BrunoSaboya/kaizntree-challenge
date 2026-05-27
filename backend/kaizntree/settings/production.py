@@ -14,11 +14,22 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
-# Railway automatically injects RAILWAY_PUBLIC_DOMAIN — add it to ALLOWED_HOSTS
-# so Django doesn't reject requests before they reach the app.
+# Explicitly reassign ALLOWED_HOSTS for production.
+# Using .append() on the list imported via `*` is unreliable — a full
+# reassignment is guaranteed to take effect.
+#
+#  - ".railway.app"    — wildcard: matches healthcheck.railway.app AND the
+#                        public *.railway.app domains Railway assigns
+#  - ".up.railway.app" — Railway's newer public URL pattern (*.up.railway.app)
+#  - RAILWAY_PUBLIC_DOMAIN is added explicitly in case it's a custom domain
+#    that doesn't end in .railway.app
 _railway_domain = _os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
+ALLOWED_HOSTS = [  # noqa: F405
+    "localhost",
+    "127.0.0.1",
+    "healthcheck.railway.app",
+    ".railway.app",
+    ".up.railway.app",
+]
 if _railway_domain:
-    ALLOWED_HOSTS.append(_railway_domain)  # noqa: F405
-
-# Railway's health-check probe sends requests with Host: healthcheck.railway.app
-ALLOWED_HOSTS.append("healthcheck.railway.app")  # noqa: F405
+    ALLOWED_HOSTS.append(_railway_domain)
