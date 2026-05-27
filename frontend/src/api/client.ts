@@ -2,8 +2,14 @@ import axios from "axios";
 import { useAuthStore } from "@/store/authStore";
 import { getOrStartRefresh } from "@/api/authRefresh";
 
+// In development, VITE_API_URL is empty so the relative "/api/v1" path
+// falls through to Vite's dev-server proxy (vite.config.ts).
+// In production (Vercel), VITE_API_URL is the Railway backend URL so
+// every request goes directly to the correct origin.
+const API_ORIGIN = import.meta.env.VITE_API_URL ?? "";
+
 const api = axios.create({
-  baseURL: "/api/v1",
+  baseURL: `${API_ORIGIN}/api/v1`,
   withCredentials: true, // send cookies for refresh
 });
 

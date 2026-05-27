@@ -16,8 +16,9 @@ let _refreshPromise: Promise<string> | null = null;
  */
 export function getOrStartRefresh(): Promise<string> {
   if (!_refreshPromise) {
+    const apiOrigin = import.meta.env.VITE_API_URL ?? "";
     _refreshPromise = axios
-      .post<{ access: string }>("/api/v1/auth/refresh/", {}, { withCredentials: true })
+      .post<{ access: string }>(`${apiOrigin}/api/v1/auth/refresh/`, {}, { withCredentials: true })
       .then(({ data }) => {
         useAuthStore.getState().setAccessToken(data.access);
         return data.access;
