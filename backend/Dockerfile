@@ -36,6 +36,11 @@ RUN DJANGO_SETTINGS_MODULE=kaizntree.settings.production \
     POSTGRES_DB=dummy POSTGRES_USER=dummy POSTGRES_PASSWORD=dummy POSTGRES_HOST=dummy \
     python manage.py collectstatic --noinput
 
+# Persist the settings module so both manage.py (entrypoint migrations) and
+# gunicorn use production settings at runtime — not the development default
+# in manage.py.
+ENV DJANGO_SETTINGS_MODULE=kaizntree.settings.production
+
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
