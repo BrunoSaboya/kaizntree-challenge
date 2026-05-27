@@ -1,7 +1,5 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
-buildContext = "backend"
 
 [deploy]
 healthcheckPath = "/api/schema/swagger-ui/"
