@@ -3,6 +3,7 @@ export interface ProductFinancials {
   product_name: string;
   sku: string;
   unit_type: string;
+  min_stock_quantity: number;
   total_cost: string;
   total_revenue: string;
   profit: string;
@@ -10,6 +11,7 @@ export interface ProductFinancials {
   units_purchased: string;
   units_sold: string;
   current_stock: string;
+  inventory_value: string;
 }
 
 export interface FinancialSummary {
@@ -17,5 +19,6 @@ export interface FinancialSummary {
   total_revenue: string;
   total_profit: string;
   overall_margin_pct: string | null;
+  inventory_value: string;
   product_count: number;
 }

@@ -14,6 +14,7 @@ export interface Product {
   description: string;
   sku: string;
   unit_type: UnitType;
+  min_stock_quantity: number;
   total_stock: string | null;
   created_at: string;
   updated_at: string;

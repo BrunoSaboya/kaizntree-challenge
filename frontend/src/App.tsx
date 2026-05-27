@@ -30,24 +30,19 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Attempt to restore session via refresh cookie on page load
-    authApi
-      .me()
+    let savedToken = "";
+    axios
+      .post<{ access: string }>("/api/v1/auth/refresh/", {}, { withCredentials: true })
+      .then(({ data }) => {
+        savedToken = data.access;
+        useAuthStore.getState().setAccessToken(savedToken);
+        return authApi.me();
+      })
       .then((user) => {
-        // If /me/ succeeds, the interceptor already refreshed the token
-        // but we need to handle the case where we don't have an access token yet
-        // Try to get a fresh token
-        return axios
-            .post<{ access: string }>("/api/v1/auth/refresh/", {}, { withCredentials: true })
-            .then(({ data }) => {
-              setAuth(data.access, user);
-            })
-            .catch(() => {
-              // Refresh failed, user is not authenticated
-            });
+        setAuth(savedToken, user);
       })
       .catch(() => {
-        // No valid session
+        // Cookie absent or expired
       })
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

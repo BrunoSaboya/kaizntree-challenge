@@ -51,19 +51,25 @@ def _build_product_row(product) -> dict:
     revenue = product.total_revenue or Decimal("0")
     profit = revenue - cost
     margin_pct = (profit / cost * 100) if cost > 0 else None
+    units_purchased = product.units_purchased or Decimal("0")
+    current_stock = product.current_stock or Decimal("0")
+    avg_unit_cost = cost / units_purchased if units_purchased > 0 else Decimal("0")
+    inventory_value = current_stock * avg_unit_cost
 
     return {
         "product_id": product.pk,
         "product_name": product.name,
         "sku": product.sku,
         "unit_type": product.unit_type,
+        "min_stock_quantity": product.min_stock_quantity,
         "total_cost": _round(cost),
         "total_revenue": _round(revenue),
         "profit": _round(profit),
         "margin_pct": _round(margin_pct),
-        "units_purchased": _round(product.units_purchased, 3),
+        "units_purchased": _round(units_purchased, 3),
         "units_sold": _round(product.units_sold, 3),
-        "current_stock": _round(product.current_stock, 3),
+        "current_stock": _round(current_stock, 3),
+        "inventory_value": _round(inventory_value),
     }
 
 
@@ -86,10 +92,13 @@ def get_summary(user) -> dict:
     total_profit = total_revenue - total_cost
     overall_margin = (total_profit / total_cost * 100) if total_cost > 0 else None
 
+    total_inventory_value = sum(r["inventory_value"] or 0 for r in rows)
+
     return {
         "total_cost": _round(total_cost),
         "total_revenue": _round(total_revenue),
         "total_profit": _round(total_profit),
         "overall_margin_pct": _round(overall_margin),
+        "inventory_value": _round(total_inventory_value),
         "product_count": len(rows),
     }

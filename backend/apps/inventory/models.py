@@ -20,6 +20,7 @@ class Product(models.Model):
     description = models.TextField(blank=True, default="")
     sku = models.CharField(max_length=100)
     unit_type = models.CharField(max_length=10, choices=UnitType.choices, default=UnitType.COUNT)
+    min_stock_quantity = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

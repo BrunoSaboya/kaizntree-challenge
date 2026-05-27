@@ -118,6 +118,11 @@ export default function ProductDetailPage() {
         </Tabs.List>
 
         <Tabs.Panel value="stock" pt="md">
+          {product.description && (
+            <Text size="sm" c="dimmed" mb="md" fs="italic">
+              {product.description}
+            </Text>
+          )}
           <Table striped>
             <Table.Thead>
               <Table.Tr>

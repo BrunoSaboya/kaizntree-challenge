@@ -7,6 +7,7 @@ import {
   Group,
   Loader,
   Modal,
+  NumberInput,
   Pagination,
   Select,
   Stack,
@@ -36,6 +37,7 @@ const schema = z.object({
   sku: z.string().min(1, "SKU is required"),
   unit_type: z.enum(["kg", "g", "l", "ml", "count"]),
   description: z.string().optional(),
+  min_stock_quantity: z.number().int().min(0).default(0),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -58,6 +60,7 @@ function ProductFormModal({
       sku: product?.sku ?? "",
       unit_type: (product?.unit_type as FormValues["unit_type"]) ?? "count",
       description: product?.description ?? "",
+      min_stock_quantity: product?.min_stock_quantity ?? 0,
     },
     validate: zodResolver(schema),
   });
@@ -93,6 +96,13 @@ function ProductFormModal({
             {...form.getInputProps("unit_type")}
           />
           <Textarea label="Description" placeholder="Optional description" {...form.getInputProps("description")} />
+          <NumberInput
+            label="Low Stock Alert Threshold"
+            description="Get a warning when stock drops below this quantity (0 = default alert at 5)"
+            placeholder="e.g. 10"
+            min={0}
+            {...form.getInputProps("min_stock_quantity")}
+          />
           <Button type="submit" loading={mutation.isPending}>
             {isEdit ? "Save Changes" : "Create Product"}
           </Button>
@@ -204,11 +214,17 @@ export default function ProductListPage() {
                     </Table.Td>
                     <Table.Td>{UNIT_TYPE_LABELS[product.unit_type]}</Table.Td>
                     <Table.Td ta="right">
-                      {product.total_stock != null ? (
-                        <Text c={parseFloat(product.total_stock) > 0 ? "green" : "orange"}>
-                          {product.total_stock}
-                        </Text>
-                      ) : "0"}
+                      {(() => {
+                        const qty = parseFloat(product.total_stock ?? "0");
+                        const threshold = product.min_stock_quantity > 0 ? product.min_stock_quantity : 5;
+                        const color = qty === 0 ? "red" : qty < threshold ? "yellow" : "teal";
+                        const label = qty === 0 ? "Out of stock" : qty < threshold ? "Low" : "OK";
+                        return (
+                          <Badge color={color} variant="light" size="sm">
+                            {product.total_stock ?? "0"} · {label}
+                          </Badge>
+                        );
+                      })()}
                     </Table.Td>
                     <Table.Td>
                       <Group justify="center" gap="xs">
@@ -255,6 +271,7 @@ export default function ProductListPage() {
       )}
 
       <ProductFormModal
+        key={editProduct?.id ?? "new"}
         opened={modalOpened}
         onClose={() => { close(); setEditProduct(undefined); }}
         product={editProduct}
