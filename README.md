@@ -3,6 +3,14 @@
 A full-stack inventory management platform for F&B CPG brands, built as a take-home
 challenge for Kaizntree.
 
+## Live Demo
+
+| | URL |
+|---|---|
+| **Frontend** | https://kaizntree-challenge.vercel.app |
+| **API** | https://kaizntree-challenge-production.up.railway.app/api/v1/ |
+| **Swagger UI** | https://kaizntree-challenge-production.up.railway.app/api/schema/swagger-ui/ |
+
 ## Quick Start
 
 ```bash
@@ -37,7 +45,7 @@ docker compose run --rm backend pytest
 | Auth | djangorestframework-simplejwt — httpOnly refresh cookie + in-memory access token |
 | API Docs | drf-spectacular (OpenAPI / Swagger UI) |
 | Frontend | React 18, TypeScript 5, Vite 5, Mantine 7, TanStack Query v5, Zustand, Zod |
-| Infra | Docker Compose, PostgreSQL 16, Nginx |
+| Infra | Docker Compose, PostgreSQL 16, Nginx, Railway (backend + DB), Vercel (frontend) |
 | Tests | pytest-django, factory-boy, pytest-cov |
 | CI | GitHub Actions (pytest + tsc) |
 
@@ -131,6 +139,41 @@ SKU uniqueness is enforced at two levels: a `validate_sku` check in the serializ
 
 Rather than pulling in a CSV library, `frontend/src/utils/csvParser.ts` implements an RFC-4180-compliant parser that handles quoted fields, escaped quotes, Windows/Unix line endings, and unknown column ordering. Each row is validated client-side with Zod before being submitted, and rows are imported sequentially so partial failures are recoverable without re-uploading the whole file.
 
+## Cloud Deployment
+
+The app is deployed as two independent services: Railway hosts the Django backend + PostgreSQL database; Vercel hosts the React SPA.
+
+### Backend — Railway
+
+`railway.toml` (repo root) tells Railway to build from the backend `Dockerfile` (production stage), healthcheck at `GET /health`, and restart on failure.
+
+The production Dockerfile stage runs `collectstatic` at build time and starts Gunicorn bound to `$PORT` (injected by Railway at runtime). `entrypoint.sh` waits for PostgreSQL to be ready using `pg_isready` against the `DATABASE_URL` Railway provides automatically when the PostgreSQL plugin is added.
+
+**Required Railway environment variables:**
+
+| Variable | Value |
+|---|---|
+| `DJANGO_SETTINGS_MODULE` | `kaizntree.settings.production` |
+| `DJANGO_SECRET_KEY` | long random string |
+| `CORS_ALLOWED_ORIGINS` | `https://kaizntree-challenge.vercel.app` |
+| `DATABASE_URL` | *(auto-injected by Railway — add the PostgreSQL plugin)* |
+
+> `DJANGO_ALLOWED_HOSTS` does **not** need to be set — `production.py` already allows all `*.railway.app` / `*.up.railway.app` patterns plus any custom domain in `RAILWAY_PUBLIC_DOMAIN`.
+
+### Frontend — Vercel
+
+Point Vercel at the `frontend/` subdirectory with build command `npm run build` and output directory `dist`. `frontend/vercel.json` rewrites every route to `index.html` for client-side SPA routing.
+
+**Required Vercel environment variable:**
+
+| Variable | Value |
+|---|---|
+| `VITE_API_URL` | `https://kaizntree-challenge-production.up.railway.app` |
+
+### Cross-Domain Cookie Handling
+
+Because the frontend (Vercel) and backend (Railway) live on different domains, `settings/production.py` sets the refresh-token cookie to `SameSite=None; Secure=True`. This is required for browsers to send the cookie on cross-origin requests. In local development, `SameSite=Lax` is used instead (same-origin via Docker Compose / Nginx).
+
 ## API Reference
 
 Interactive docs available at `/api/schema/swagger-ui/` when the backend is running.
@@ -173,6 +216,5 @@ Interactive docs available at `/api/schema/swagger-ui/` when the backend is runn
 - **Product images** via S3
 - **Role-based access** — owner vs. read-only collaborator on the same account
 - **Audit log** on order status transitions
-- **Cloud deployment** (Railway for backend + db, Vercel for frontend)
 - **Date range filtering** on financial reports
 - **CSV export** for stock and orders
