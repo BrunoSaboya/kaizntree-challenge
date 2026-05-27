@@ -39,4 +39,6 @@ RUN DJANGO_SETTINGS_MODULE=kaizntree.settings.production \
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "kaizntree.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+# Shell form (not JSON array) so $PORT is expanded at container start.
+# Railway injects $PORT; local Docker falls back to 8000.
+CMD gunicorn kaizntree.wsgi:application --bind "0.0.0.0:${PORT:-8000}" --workers 3
