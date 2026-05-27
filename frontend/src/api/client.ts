@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "@/store/authStore";
+import { getOrStartRefresh } from "@/api/authRefresh";
 
 const api = axios.create({
   baseURL: "/api/v1",
@@ -36,13 +37,8 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post<{ access: string }>(
-          "/api/v1/auth/refresh/",
-          {},
-          { withCredentials: true }
-        );
-        const newToken = data.access;
-        useAuthStore.getState().setAccessToken(newToken);
+        const newToken = await getOrStartRefresh();
+        // setAccessToken is handled inside getOrStartRefresh
 
         pendingRequests.forEach((cb) => cb(newToken));
         pendingRequests = [];

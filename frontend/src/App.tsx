@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Center, Loader } from "@mantine/core";
 
-import axios from "axios";
 import { authApi } from "@/api/auth";
+import { getOrStartRefresh } from "@/api/authRefresh";
 import { useAuthStore } from "@/store/authStore";
 import { AppShellLayout } from "@/components/layout/AppShellLayout";
 import LoginPage from "@/pages/auth/LoginPage";
@@ -31,11 +31,10 @@ export default function App() {
 
   useEffect(() => {
     let savedToken = "";
-    axios
-      .post<{ access: string }>("/api/v1/auth/refresh/", {}, { withCredentials: true })
-      .then(({ data }) => {
-        savedToken = data.access;
-        useAuthStore.getState().setAccessToken(savedToken);
+    getOrStartRefresh()
+      .then((token) => {
+        savedToken = token;
+        // token is already in Zustand store via getOrStartRefresh
         return authApi.me();
       })
       .then((user) => {
