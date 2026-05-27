@@ -19,3 +19,6 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 _railway_domain = _os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
 if _railway_domain:
     ALLOWED_HOSTS.append(_railway_domain)  # noqa: F405
+
+# Railway's health-check probe sends requests with Host: healthcheck.railway.app
+ALLOWED_HOSTS.append("healthcheck.railway.app")  # noqa: F405
