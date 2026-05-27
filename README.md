@@ -111,7 +111,7 @@ kaizntree-challenge/
 Rather than storing JWTs in `localStorage` (vulnerable to XSS), the app uses:
 
 - **Access token** (15 min TTL) — stored in Zustand (memory only). Never touches `localStorage` or the DOM. Sent as `Authorization: Bearer` on every request.
-- **Refresh token** (7 days) — stored in a `httpOnly; SameSite=Lax` cookie, invisible to JavaScript. Sent automatically by the browser on refresh calls.
+- **Refresh token** (7 days) — stored in a `httpOnly; SameSite=Lax; Secure` cookie, invisible to JavaScript. Sent automatically by the browser on refresh calls (same-origin via Vercel proxy).
 
 The Axios client has a response interceptor: on any 401, it transparently calls `/auth/refresh/`, updates the in-memory token, and retries the original request. On hard page refresh, the app calls `GET /auth/me/` on mount — if the refresh cookie is still valid, the session is silently restored without re-login.
 
@@ -162,17 +162,19 @@ The production Dockerfile stage runs `collectstatic` at build time and starts Gu
 
 ### Frontend — Vercel
 
-Point Vercel at the `frontend/` subdirectory with build command `npm run build` and output directory `dist`. `frontend/vercel.json` rewrites every route to `index.html` for client-side SPA routing.
+Point Vercel at the `frontend/` subdirectory with build command `npm run build` and output directory `dist`.
 
-**Required Vercel environment variable:**
+`frontend/vercel.json` serves two purposes:
+1. Proxies all `/api/*` requests to the Railway backend (transparent reverse proxy).
+2. Rewrites every other route to `index.html` for client-side SPA routing.
 
-| Variable | Value |
-|---|---|
-| `VITE_API_URL` | `https://kaizntree-challenge-production.up.railway.app` |
+No `VITE_API_URL` environment variable is needed — with the proxy in place the frontend uses relative `/api/v1/...` paths (the `??""` fallback in `client.ts` and `authRefresh.ts`).
 
-### Cross-Domain Cookie Handling
+### Cookie Architecture
 
-Because the frontend (Vercel) and backend (Railway) live on different domains, `settings/production.py` sets the refresh-token cookie to `SameSite=None; Secure=True`. This is required for browsers to send the cookie on cross-origin requests. In local development, `SameSite=Lax` is used instead (same-origin via Docker Compose / Nginx).
+All API calls are proxied through Vercel (`vercel.app/api/*` → `railway.app/api/*`), so from the browser's perspective the cookie is first-party (`vercel.app`). This allows `SameSite=Lax; Secure=True` — no `SameSite=None` cross-domain cookies required. This makes sessions work correctly in Brave, Safari (ITP), and Firefox (strict ETP), all of which block third-party cookies regardless of the `SameSite=None` attribute.
+
+In local development, `SameSite=Lax; Secure=False` is used (same-origin via Docker Compose / Nginx — no proxy needed).
 
 ## API Reference
 

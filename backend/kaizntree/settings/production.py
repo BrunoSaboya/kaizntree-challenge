@@ -5,10 +5,12 @@ from .base import *  # noqa: F401, F403
 DEBUG = False
 
 SIMPLE_JWT["AUTH_COOKIE_SECURE"] = True  # noqa: F405
-# SameSite=None is required when the frontend (Vercel) and backend (Railway)
-# are on different domains — browsers only send cross-origin cookies when
-# SameSite=None and Secure=True are both set.
-SIMPLE_JWT["AUTH_COOKIE_SAMESITE"] = "None"  # noqa: F405
+# SameSite=Lax is safe here because the Vercel frontend proxies all /api/*
+# requests to Railway (via vercel.json rewrites), so the browser sees the
+# cookie as same-origin (vercel.app → vercel.app). No cross-domain cookie
+# needed — this also makes the cookie compatible with Brave/Safari ITP/Firefox
+# strict tracking protection, which block third-party SameSite=None cookies.
+SIMPLE_JWT["AUTH_COOKIE_SAMESITE"] = "Lax"  # noqa: F405
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_HSTS_SECONDS = 31536000
