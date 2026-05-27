@@ -69,11 +69,9 @@ class RefreshView(TokenRefreshView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        request.data._mutable = True if hasattr(request.data, "_mutable") else None
-        try:
-            request.data["refresh"] = refresh_token
-        except AttributeError:
-            request.data = {"refresh": refresh_token}
+        # request.data is a read-only property in DRF — write to the backing
+        # store directly so the parent TokenRefreshView sees the cookie token.
+        request._full_data = {"refresh": refresh_token}
 
         response = super().post(request, *args, **kwargs)
 

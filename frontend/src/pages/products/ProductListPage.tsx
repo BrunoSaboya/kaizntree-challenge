@@ -20,7 +20,7 @@ import {
 import { useForm } from "@mantine/form";
 import { useDebouncedValue, useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { IconEdit, IconEye, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
+import { IconEdit, IconEye, IconPlus, IconSearch, IconTrash, IconUpload } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { zodResolver } from "mantine-form-zod-resolver";
@@ -31,6 +31,7 @@ import { productsApi } from "@/api/products";
 import { PageHeader } from "@/components/common/PageHeader";
 import type { Product } from "@/types/product";
 import { UNIT_TYPE_LABELS } from "@/types/product";
+import { ImportProductsModal } from "./ImportProductsModal";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -118,6 +119,7 @@ export default function ProductListPage() {
   const [unitType, setUnitType] = useState<string | null>(null);
   const [debouncedSearch] = useDebouncedValue(search, 300);
   const [modalOpened, { open, close }] = useDisclosure(false);
+  const [importOpened, { open: openImport, close: closeImport }] = useDisclosure(false);
   const [editProduct, setEditProduct] = useState<Product | undefined>();
   const queryClient = useQueryClient();
 
@@ -155,9 +157,14 @@ export default function ProductListPage() {
       <PageHeader
         title="Products"
         action={
-          <Button leftSection={<IconPlus size={16} />} onClick={handleNew}>
-            New Product
-          </Button>
+          <Group gap="xs">
+            <Button variant="default" leftSection={<IconUpload size={16} />} onClick={openImport}>
+              Import CSV
+            </Button>
+            <Button leftSection={<IconPlus size={16} />} onClick={handleNew}>
+              New Product
+            </Button>
+          </Group>
         }
       />
 
@@ -276,6 +283,7 @@ export default function ProductListPage() {
         onClose={() => { close(); setEditProduct(undefined); }}
         product={editProduct}
       />
+      <ImportProductsModal opened={importOpened} onClose={closeImport} />
     </Stack>
   );
 }

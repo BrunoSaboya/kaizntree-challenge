@@ -19,4 +19,7 @@ export const stockApi = {
     api.patch<Stock>(`/stock/${id}/`, data).then((r) => r.data),
 
   delete: (id: number) => api.delete(`/stock/${id}/`),
+
+  expiringSoon: (days = 30) =>
+    api.get<Stock[]>("/stock/expiring_soon/", { params: { days } }).then((r) => r.data),
 };

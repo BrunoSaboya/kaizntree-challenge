@@ -15,11 +15,13 @@ import {
   TextInput,
   Textarea,
 } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconPlus } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import dayjs from "dayjs";
 import { useState } from "react";
 import { zodResolver } from "mantine-form-zod-resolver";
 import { z } from "zod";
@@ -34,6 +36,7 @@ const schema = z.object({
   identifier: z.string().min(1, "Identifier is required"),
   quantity: z.number().positive("Must be greater than 0"),
   notes: z.string().optional(),
+  expiry_date: z.date().nullable().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -47,12 +50,18 @@ function StockFormModal({ opened, onClose }: { opened: boolean; onClose: () => v
   });
 
   const form = useForm<FormValues>({
-    initialValues: { product: 0, identifier: "", quantity: 0, notes: "" },
+    initialValues: { product: 0, identifier: "", quantity: 0, notes: "", expiry_date: null },
     validate: zodResolver(schema),
   });
 
   const mutation = useMutation({
-    mutationFn: (values: FormValues) => stockApi.create(values as any),
+    mutationFn: (values: FormValues) => {
+      const payload = {
+        ...values,
+        expiry_date: values.expiry_date ? dayjs(values.expiry_date).format("YYYY-MM-DD") : null,
+      };
+      return stockApi.create(payload as any);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -84,6 +93,13 @@ function StockFormModal({ opened, onClose }: { opened: boolean; onClose: () => v
             required
             {...form.getInputProps("identifier")}
           />
+          <DateInput
+            label="Expiry Date"
+            placeholder="No expiry"
+            clearable
+            valueFormat="MMM D, YYYY"
+            {...form.getInputProps("expiry_date")}
+          />
           <NumberInput
             label="Quantity"
             placeholder="e.g. 100"
@@ -100,6 +116,19 @@ function StockFormModal({ opened, onClose }: { opened: boolean; onClose: () => v
       </form>
     </Modal>
   );
+}
+
+function ExpiryBadge({ expiry_date }: { expiry_date: string | null }) {
+  if (!expiry_date) return <Text c="dimmed" fz="sm">—</Text>;
+  const expiry = dayjs(expiry_date);
+  const daysLeft = expiry.diff(dayjs(), "day");
+  if (daysLeft < 0) return <Badge color="red" variant="light" size="sm">Expired</Badge>;
+  if (daysLeft <= 30) return (
+    <Badge color="orange" variant="light" size="sm">
+      {expiry.format("MMM D")} ({daysLeft}d)
+    </Badge>
+  );
+  return <Badge color="teal" variant="light" size="sm">{expiry.format("MMM D, YYYY")}</Badge>;
 }
 
 export default function StockPage() {
@@ -135,13 +164,14 @@ export default function StockPage() {
                 <Table.Th>Identifier</Table.Th>
                 <Table.Th ta="right">Quantity</Table.Th>
                 <Table.Th>Notes</Table.Th>
+                <Table.Th>Expiry</Table.Th>
                 <Table.Th>Added</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {data?.results.length === 0 ? (
                 <Table.Tr>
-                  <Table.Td colSpan={5}>
+                  <Table.Td colSpan={6}>
                     <Center py="xl">
                       <Text c="dimmed">No stock entries yet.</Text>
                     </Center>
@@ -159,6 +189,7 @@ export default function StockPage() {
                     <Table.Td><Badge variant="outline">{s.identifier}</Badge></Table.Td>
                     <Table.Td ta="right" fw={500}>{s.quantity}</Table.Td>
                     <Table.Td c="dimmed" fz="sm">{s.notes || "—"}</Table.Td>
+                    <Table.Td><ExpiryBadge expiry_date={s.expiry_date} /></Table.Td>
                     <Table.Td c="dimmed" fz="sm">{formatDate(s.created_at)}</Table.Td>
                   </Table.Tr>
                 ))

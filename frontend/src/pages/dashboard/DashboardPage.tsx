@@ -30,8 +30,12 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 
+import dayjs from "dayjs";
+
 import { financialsApi } from "@/api/financials";
 import { purchaseOrdersApi, salesOrdersApi } from "@/api/orders";
+import { stockApi } from "@/api/stock";
+import type { Stock } from "@/types/product";
 import { formatCurrency, formatPercent } from "@/utils/formatters";
 
 function SummaryCard({
@@ -212,6 +216,61 @@ function InventoryHealthCard({
   );
 }
 
+function ExpiringLotsCard({ lots }: { lots: Stock[] }) {
+  const navigate = useNavigate();
+
+  return (
+    <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
+      <Group justify="space-between" mb="md">
+        <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+          Expiring Soon
+        </Text>
+        <Text size="xs" c="dimmed">next 30 days</Text>
+      </Group>
+
+      {lots.length === 0 ? (
+        <Group gap="xs">
+          <ThemeIcon color="green" variant="light" size="md">
+            <IconCheck size={16} />
+          </ThemeIcon>
+          <Text size="sm" c="dimmed">No lots expiring soon</Text>
+        </Group>
+      ) : (
+        <Stack gap="xs">
+          {lots.slice(0, 4).map((lot) => {
+            const daysLeft = dayjs(lot.expiry_date!).diff(dayjs(), "day");
+            const color = daysLeft < 0 ? "red" : daysLeft <= 7 ? "red" : "orange";
+            return (
+              <UnstyledButton key={lot.id} onClick={() => navigate("/stock")}>
+                <Group
+                  justify="space-between"
+                  p="xs"
+                  style={{
+                    borderRadius: 8,
+                    border: `1px solid var(--mantine-color-${color}-3)`,
+                    background: `var(--mantine-color-${color}-0)`,
+                  }}
+                >
+                  <div>
+                    <Text size="sm" fw={600}>{lot.product_name}</Text>
+                    <Text size="xs" c="dimmed">Lot {lot.identifier} · {lot.quantity}</Text>
+                  </div>
+                  <Badge color={color} variant="light" size="xs">
+                    {daysLeft < 0 ? "Expired" : `${daysLeft}d`}
+                  </Badge>
+                </Group>
+              </UnstyledButton>
+            );
+          })}
+          {lots.length > 4 && (
+            <Text size="xs" c="dimmed" ta="center">+{lots.length - 4} more</Text>
+          )}
+        </Stack>
+      )}
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
 
@@ -233,6 +292,11 @@ export default function DashboardPage() {
   const { data: draftSOs } = useQuery({
     queryKey: ["sales-orders", { status: "draft" }],
     queryFn: () => salesOrdersApi.list({ status: "draft" }),
+  });
+
+  const { data: expiringLots } = useQuery({
+    queryKey: ["stock", "expiring_soon"],
+    queryFn: () => stockApi.expiringSoon(30),
   });
 
   if (summaryLoading || productsLoading) {
@@ -325,13 +389,16 @@ export default function DashboardPage() {
         <Grid.Col span={{ base: 12, md: 4 }}>
           <PendingOrdersCard draftPOCount={draftPOCount} draftSOCount={draftSOCount} />
         </Grid.Col>
-        <Grid.Col span={{ base: 12, md: 8 }}>
+        <Grid.Col span={{ base: 12, md: 4 }}>
           <InventoryHealthCard
             outOfStock={outOfStock}
             lowStock={lowStock}
             healthy={healthy}
             total={totalProducts}
           />
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, md: 4 }}>
+          <ExpiringLotsCard lots={expiringLots ?? []} />
         </Grid.Col>
       </Grid>
 

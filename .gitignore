@@ -38,3 +38,6 @@ frontend/.vite/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Graphify knowledge graph output (generated)
+graphify-out/

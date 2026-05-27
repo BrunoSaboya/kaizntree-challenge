@@ -34,7 +34,7 @@ class StockSerializer(serializers.ModelSerializer):
         model = Stock
         fields = [
             "id", "product", "product_name", "product_sku",
-            "identifier", "quantity", "notes", "created_at", "updated_at",
+            "identifier", "quantity", "notes", "expiry_date", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "product_name", "product_sku", "created_at", "updated_at"]
 

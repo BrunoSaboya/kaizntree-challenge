@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from django.db.models import Sum
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, viewsets
@@ -52,8 +54,20 @@ class StockViewSet(OwnedModelMixin, viewsets.ModelViewSet):
     serializer_class = StockSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["product"]
-    ordering_fields = ["created_at", "quantity"]
+    ordering_fields = ["created_at", "quantity", "expiry_date"]
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
         return Stock.objects.filter(owner=self.request.user).select_related("product")
+
+    @action(detail=False, methods=["get"])
+    def expiring_soon(self, request):
+        days = int(request.query_params.get("days", 30))
+        cutoff = date.today() + timedelta(days=days)
+        qs = self.get_queryset().filter(
+            expiry_date__isnull=False,
+            expiry_date__lte=cutoff,
+            quantity__gt=0,
+        ).order_by("expiry_date")
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
