@@ -68,15 +68,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "kaizntree.wsgi.application"
 
+import dj_database_url as _dj_db_url
+
+_default_db_url = (
+    f"postgresql://{os.environ.get('POSTGRES_USER', 'kaizntree')}"
+    f":{os.environ.get('POSTGRES_PASSWORD', 'kaizntree')}"
+    f"@{os.environ.get('POSTGRES_HOST', 'localhost')}"
+    f":{os.environ.get('POSTGRES_PORT', '5432')}"
+    f"/{os.environ.get('POSTGRES_DB', 'kaizntree')}"
+)
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB", "kaizntree"),
-        "USER": os.environ.get("POSTGRES_USER", "kaizntree"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "kaizntree"),
-        "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
-        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
-    }
+    "default": _dj_db_url.config(
+        default=_default_db_url,
+        conn_max_age=600,
+        ssl_require=False,
+    )
 }
 
 AUTH_USER_MODEL = "users.User"
