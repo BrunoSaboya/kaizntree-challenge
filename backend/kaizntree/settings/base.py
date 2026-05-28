@@ -4,7 +4,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "change-me-in-production")
+SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
 DEBUG = False
 
@@ -71,8 +71,8 @@ WSGI_APPLICATION = "kaizntree.wsgi.application"
 import dj_database_url as _dj_db_url
 
 _default_db_url = (
-    f"postgresql://{os.environ.get('POSTGRES_USER', 'kaizntree')}"
-    f":{os.environ.get('POSTGRES_PASSWORD', 'kaizntree')}"
+    f"postgresql://{os.environ['POSTGRES_USER']}"
+    f":{os.environ['POSTGRES_PASSWORD']}"
     f"@{os.environ.get('POSTGRES_HOST', 'localhost')}"
     f":{os.environ.get('POSTGRES_PORT', '5432')}"
     f"/{os.environ.get('POSTGRES_DB', 'kaizntree')}"
