@@ -111,9 +111,11 @@ kaizntree-challenge/
 Rather than storing JWTs in `localStorage` (vulnerable to XSS), the app uses:
 
 - **Access token** (15 min TTL) — stored in Zustand (memory only). Never touches `localStorage` or the DOM. Sent as `Authorization: Bearer` on every request.
-- **Refresh token** (7 days) — stored in a `httpOnly; SameSite=Lax; Secure` cookie, invisible to JavaScript. Sent automatically by the browser on refresh calls (same-origin via Vercel proxy).
+- **Refresh token** (7 days) — stored in two places for resilience:
+  - An `httpOnly; SameSite=Lax; Secure` cookie (primary — invisible to JavaScript, works when the Vercel proxy forwards Set-Cookie headers).
+  - `sessionStorage["kz_refresh_token"]` (fallback — survives page reloads, cleared on tab close, used when cookies are blocked by Brave Shields / Safari ITP).
 
-The Axios client has a response interceptor: on any 401, it transparently calls `/auth/refresh/`, updates the in-memory token, and retries the original request. On hard page refresh, the app calls `GET /auth/me/` on mount — if the refresh cookie is still valid, the session is silently restored without re-login.
+The Axios client has a response interceptor: on any 401, it transparently calls `/auth/refresh/`, updates the in-memory token, and retries the original request. On hard page refresh, the app calls `POST /auth/refresh/` on mount — it tries the httpOnly cookie first, then falls back to the `sessionStorage` copy sent in the request body. Either path silently restores the session without re-login.
 
 > **Note:** The `/auth/refresh/` view reads the token from the cookie and injects it
 > into the request via `request._full_data` (the backing store for DRF's read-only
