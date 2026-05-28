@@ -164,19 +164,23 @@ The production Dockerfile stage runs `collectstatic` at build time and starts Gu
 
 ### Frontend — Vercel
 
-Point Vercel at the `frontend/` subdirectory with build command `npm run build` and output directory `dist`.
+Point Vercel at the `frontend/` subdirectory with build command `npm run build` and output directory `dist`. `frontend/vercel.json` rewrites every route to `index.html` for client-side SPA routing.
 
-`frontend/vercel.json` serves two purposes:
-1. Proxies all `/api/*` requests to the Railway backend (transparent reverse proxy).
-2. Rewrites every other route to `index.html` for client-side SPA routing.
+**Required Vercel environment variable:**
 
-No `VITE_API_URL` environment variable is needed — with the proxy in place the frontend uses relative `/api/v1/...` paths (the `??""` fallback in `client.ts` and `authRefresh.ts`).
+| Variable | Value |
+|---|---|
+| `VITE_API_URL` | `https://kaizntree-challenge-production.up.railway.app` |
 
-### Cookie Architecture
+### Cross-Domain Session Architecture
 
-All API calls are proxied through Vercel (`vercel.app/api/*` → `railway.app/api/*`), so from the browser's perspective the cookie is first-party (`vercel.app`). This allows `SameSite=Lax; Secure=True` — no `SameSite=None` cross-domain cookies required. This makes sessions work correctly in Brave, Safari (ITP), and Firefox (strict ETP), all of which block third-party cookies regardless of the `SameSite=None` attribute.
+Because Vercel and Railway are on different domains, the session-persistence strategy is dual-layered:
 
-In local development, `SameSite=Lax; Secure=False` is used (same-origin via Docker Compose / Nginx — no proxy needed).
+1. **httpOnly cookie** (`SameSite=None; Secure`) — set by Railway on every login/refresh. Works in browsers that allow cross-domain cookies (Chrome, Firefox default). Automatically sent by the browser on subsequent refresh calls.
+
+2. **`sessionStorage["kz_refresh_token"]`** — the backend also returns the refresh token in the response body. The frontend stores it in `sessionStorage` on login and re-sends it in the request body when the cookie path fails. This covers Brave (Shields on), Safari (ITP), and any browser where cross-domain cookies are blocked.
+
+`sessionStorage` survives page reloads but is cleared when the tab closes. In local development, `SameSite=Lax; Secure=False` is used (same-origin via Docker Compose / Nginx).
 
 ## API Reference
 
