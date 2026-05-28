@@ -70,13 +70,16 @@ WSGI_APPLICATION = "kaizntree.wsgi.application"
 
 import dj_database_url as _dj_db_url
 
-_default_db_url = (
-    f"postgresql://{os.environ['POSTGRES_USER']}"
-    f":{os.environ['POSTGRES_PASSWORD']}"
-    f"@{os.environ.get('POSTGRES_HOST', 'localhost')}"
-    f":{os.environ.get('POSTGRES_PORT', '5432')}"
-    f"/{os.environ.get('POSTGRES_DB', 'kaizntree')}"
-)
+if "DATABASE_URL" not in os.environ:
+    _default_db_url = (
+        f"postgresql://{os.environ['POSTGRES_USER']}"
+        f":{os.environ['POSTGRES_PASSWORD']}"
+        f"@{os.environ.get('POSTGRES_HOST', 'localhost')}"
+        f":{os.environ.get('POSTGRES_PORT', '5432')}"
+        f"/{os.environ.get('POSTGRES_DB', 'kaizntree')}"
+    )
+else:
+    _default_db_url = None
 
 DATABASES = {
     "default": _dj_db_url.config(
