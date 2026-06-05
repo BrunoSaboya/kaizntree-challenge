@@ -14,6 +14,13 @@ class PurchaseOrder(models.Model):
         on_delete=models.CASCADE,
         related_name="purchase_orders",
     )
+    supplier = models.ForeignKey(
+        "suppliers.Supplier",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="purchase_orders",
+    )
     product = models.ForeignKey(
         "inventory.Product",
         on_delete=models.PROTECT,

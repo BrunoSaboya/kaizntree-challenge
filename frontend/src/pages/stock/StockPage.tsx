@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   Center,
+  Drawer,
   Group,
   Loader,
   Modal,
@@ -19,14 +20,14 @@ import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { IconPlus } from "@tabler/icons-react";
+import { IconHistory, IconPlus } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { zodResolver } from "mantine-form-zod-resolver";
 import { z } from "zod";
 
-import { stockApi } from "@/api/stock";
+import { stockApi, type StockMovement } from "@/api/stock";
 import { productsApi } from "@/api/products";
 import { PageHeader } from "@/components/common/PageHeader";
 import { formatDate } from "@/utils/formatters";
@@ -118,6 +119,91 @@ function StockFormModal({ opened, onClose }: { opened: boolean; onClose: () => v
   );
 }
 
+const MOVEMENT_COLORS: Record<string, string> = {
+  PURCHASE_CONFIRMED: "teal",
+  SALES_CONFIRMED: "red",
+  SALES_CANCELLED: "orange",
+  MANUAL_ADJUSTMENT: "blue",
+};
+
+const MOVEMENT_LABELS: Record<string, string> = {
+  PURCHASE_CONFIRMED: "Purchase In",
+  SALES_CONFIRMED: "Sale Out",
+  SALES_CANCELLED: "Sale Cancelled",
+  MANUAL_ADJUSTMENT: "Manual",
+};
+
+function MovementDrawer({
+  stockId,
+  stockLabel,
+  opened,
+  onClose,
+}: {
+  stockId: number | null;
+  stockLabel: string;
+  opened: boolean;
+  onClose: () => void;
+}) {
+  const { data, isLoading } = useQuery<StockMovement[]>({
+    queryKey: ["stock-movements", stockId],
+    queryFn: () => stockApi.movements(stockId!),
+    enabled: opened && stockId != null,
+  });
+
+  return (
+    <Drawer
+      opened={opened}
+      onClose={onClose}
+      title={<Text fw={600}>Movement History — {stockLabel}</Text>}
+      position="right"
+      size="lg"
+      padding="md"
+    >
+      {isLoading ? (
+        <Center h={200}><Loader /></Center>
+      ) : !data?.length ? (
+        <Center h={200}>
+          <Text c="dimmed">No movements recorded yet.</Text>
+        </Center>
+      ) : (
+        <Table striped highlightOnHover fz="sm">
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Type</Table.Th>
+              <Table.Th ta="right">Qty Change</Table.Th>
+              <Table.Th>Reference</Table.Th>
+              <Table.Th>Notes</Table.Th>
+              <Table.Th>Date</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {data.map((m) => {
+              const qty = parseFloat(m.quantity_change);
+              return (
+                <Table.Tr key={m.id}>
+                  <Table.Td>
+                    <Badge color={MOVEMENT_COLORS[m.movement_type] ?? "gray"} variant="light" size="sm">
+                      {MOVEMENT_LABELS[m.movement_type] ?? m.movement_type}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td ta="right" fw={600} c={qty >= 0 ? "teal" : "red"}>
+                    {qty >= 0 ? "+" : ""}{qty}
+                  </Table.Td>
+                  <Table.Td c="dimmed" fz="xs">
+                    {m.reference_type ? `${m.reference_type} #${m.reference_id}` : "—"}
+                  </Table.Td>
+                  <Table.Td c="dimmed" fz="xs">{m.notes || "—"}</Table.Td>
+                  <Table.Td c="dimmed" fz="xs">{formatDate(m.created_at)}</Table.Td>
+                </Table.Tr>
+              );
+            })}
+          </Table.Tbody>
+        </Table>
+      )}
+    </Drawer>
+  );
+}
+
 function ExpiryBadge({ expiry_date }: { expiry_date: string | null }) {
   if (!expiry_date) return <Text c="dimmed" fz="sm">—</Text>;
   const expiry = dayjs(expiry_date);
@@ -134,6 +220,8 @@ function ExpiryBadge({ expiry_date }: { expiry_date: string | null }) {
 export default function StockPage() {
   const [page, setPage] = useState(1);
   const [opened, { open, close }] = useDisclosure(false);
+  const [movementStock, setMovementStock] = useState<{ id: number; label: string } | null>(null);
+  const [movementOpened, { open: openMovements, close: closeMovements }] = useDisclosure(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["stock", { page }],
@@ -166,6 +254,7 @@ export default function StockPage() {
                 <Table.Th>Notes</Table.Th>
                 <Table.Th>Expiry</Table.Th>
                 <Table.Th>Added</Table.Th>
+                <Table.Th />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -191,6 +280,19 @@ export default function StockPage() {
                     <Table.Td c="dimmed" fz="sm">{s.notes || "—"}</Table.Td>
                     <Table.Td><ExpiryBadge expiry_date={s.expiry_date} /></Table.Td>
                     <Table.Td c="dimmed" fz="sm">{formatDate(s.created_at)}</Table.Td>
+                    <Table.Td>
+                      <Button
+                        size="xs"
+                        variant="subtle"
+                        leftSection={<IconHistory size={14} />}
+                        onClick={() => {
+                          setMovementStock({ id: s.id, label: `${s.product_name} / ${s.identifier}` });
+                          openMovements();
+                        }}
+                      >
+                        History
+                      </Button>
+                    </Table.Td>
                   </Table.Tr>
                 ))
               )}
@@ -205,6 +307,12 @@ export default function StockPage() {
       )}
 
       <StockFormModal opened={opened} onClose={close} />
+      <MovementDrawer
+        stockId={movementStock?.id ?? null}
+        stockLabel={movementStock?.label ?? ""}
+        opened={movementOpened}
+        onClose={closeMovements}
+      />
     </Stack>
   );
 }

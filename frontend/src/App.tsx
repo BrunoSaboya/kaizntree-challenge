@@ -14,6 +14,10 @@ import ProductDetailPage from "@/pages/products/ProductDetailPage";
 import StockPage from "@/pages/stock/StockPage";
 import PurchaseOrderListPage from "@/pages/purchase-orders/PurchaseOrderListPage";
 import SalesOrderListPage from "@/pages/sales-orders/SalesOrderListPage";
+import SuppliersPage from "@/pages/suppliers/SuppliersPage";
+import ForecastingPage from "@/pages/forecasting/ForecastingPage";
+import AIAssistPage from "@/pages/ai-assist/AIAssistPage";
+import IntegrationsPage from "@/pages/integrations/IntegrationsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -87,6 +91,10 @@ export default function App() {
           <Route path="stock" element={<StockPage />} />
           <Route path="purchase-orders" element={<PurchaseOrderListPage />} />
           <Route path="sales-orders" element={<SalesOrderListPage />} />
+          <Route path="suppliers" element={<SuppliersPage />} />
+          <Route path="forecasting" element={<ForecastingPage />} />
+          <Route path="ai-assist" element={<AIAssistPage />} />
+          <Route path="integrations" element={<IntegrationsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

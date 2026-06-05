@@ -54,3 +54,34 @@ class Stock(models.Model):
 
     def __str__(self):
         return f"{self.product.name} — {self.identifier} ({self.quantity})"
+
+
+class MovementType(models.TextChoices):
+    PURCHASE_CONFIRMED = "purchase_confirmed", "Purchase Order Confirmed"
+    SALES_CONFIRMED = "sales_confirmed", "Sales Order Confirmed"
+    SALES_CANCELLED = "sales_cancelled", "Sales Order Cancelled"
+    MANUAL_ADJUSTMENT = "manual_adjustment", "Manual Adjustment"
+
+
+class StockMovement(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="stock_movements",
+    )
+    stock = models.ForeignKey(Stock, on_delete=models.CASCADE, related_name="movements")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="movements")
+    movement_type = models.CharField(max_length=30, choices=MovementType.choices)
+    quantity_change = models.DecimalField(max_digits=12, decimal_places=3)
+    reference_type = models.CharField(max_length=50, blank=True, default="")
+    reference_id = models.PositiveIntegerField(null=True, blank=True)
+    notes = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "stock_movements"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        sign = "+" if self.quantity_change >= 0 else ""
+        return f"{self.movement_type} {sign}{self.quantity_change} — {self.stock.identifier}"

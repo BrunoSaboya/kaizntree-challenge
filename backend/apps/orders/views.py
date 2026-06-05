@@ -40,7 +40,12 @@ class PurchaseOrderViewSet(OwnedModelMixin, viewsets.ModelViewSet):
         po = self.get_object()
         serializer = ConfirmPurchaseOrderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        updated_po = confirm_purchase_order(po, serializer.validated_data["stock_identifier"])
+        updated_po = confirm_purchase_order(
+            po,
+            serializer.validated_data["stock_identifier"],
+            expiry_date=serializer.validated_data.get("expiry_date"),
+            stock_notes=serializer.validated_data.get("stock_notes", ""),
+        )
         return Response(PurchaseOrderSerializer(updated_po, context={"request": request}).data)
 
     @action(detail=True, methods=["post"])

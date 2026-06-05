@@ -8,8 +8,8 @@ from rest_framework.response import Response
 
 from apps.financials.services import get_product_financials
 
-from .models import Product, Stock
-from .serializers import ProductSerializer, StockSerializer
+from .models import Product, Stock, StockMovement
+from .serializers import ProductSerializer, StockMovementSerializer, StockSerializer
 
 
 class OwnedModelMixin:
@@ -49,6 +49,13 @@ class ProductViewSet(OwnedModelMixin, viewsets.ModelViewSet):
         data = get_product_financials(request.user, product_id=product.pk)
         return Response(data)
 
+    @action(detail=True, methods=["get"])
+    def movements(self, request, pk=None):
+        product = self.get_object()
+        qs = StockMovement.objects.filter(owner=request.user, product=product).select_related("stock")
+        serializer = StockMovementSerializer(qs, many=True)
+        return Response(serializer.data)
+
 
 class StockViewSet(OwnedModelMixin, viewsets.ModelViewSet):
     serializer_class = StockSerializer
@@ -59,6 +66,13 @@ class StockViewSet(OwnedModelMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Stock.objects.filter(owner=self.request.user).select_related("product")
+
+    @action(detail=True, methods=["get"])
+    def movements(self, request, pk=None):
+        stock = self.get_object()
+        qs = StockMovement.objects.filter(owner=request.user, stock=stock)
+        serializer = StockMovementSerializer(qs, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def expiring_soon(self, request):

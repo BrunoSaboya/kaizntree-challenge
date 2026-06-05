@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   Center,
+  Divider,
   Group,
   Loader,
   Modal,
@@ -26,15 +27,18 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { zodResolver } from "mantine-form-zod-resolver";
 import { z } from "zod";
 
 import { productsApi } from "@/api/products";
 import { purchaseOrdersApi } from "@/api/orders";
+import { stockApi } from "@/api/stock";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS } from "@/types/orders";
 import { formatCurrency, formatDate } from "@/utils/formatters";
+
+const CREATE_NEW_VALUE = "__create_new__";
 
 const schema = z.object({
   product: z.number({ required_error: "Product is required" }),
@@ -48,18 +52,50 @@ type FormValues = z.infer<typeof schema>;
 
 function ConfirmPOModal({
   poId,
+  productId,
   opened,
   onClose,
 }: {
   poId: number;
+  productId: number;
   opened: boolean;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
-  const [identifier, setIdentifier] = useState("");
+  const [selectedValue, setSelectedValue] = useState<string | null>(null);
+  const [newIdentifier, setNewIdentifier] = useState("");
+  const [expiryDate, setExpiryDate] = useState<Date | null>(null);
+  const [stockNotes, setStockNotes] = useState("");
+
+  const isCreateNew = selectedValue === CREATE_NEW_VALUE;
+  const effectiveIdentifier = isCreateNew ? newIdentifier : (selectedValue ?? "");
+
+  const { data: stockEntries, isLoading: stockLoading } = useQuery({
+    queryKey: ["stock", { product: productId }],
+    queryFn: () => stockApi.list({ product: productId }),
+    enabled: opened,
+  });
+
+  const stockOptions = useMemo(() => {
+    const existing = (stockEntries?.results ?? []).map((s) => ({
+      value: s.identifier,
+      label: `${s.identifier}  —  qty: ${s.quantity}`,
+    }));
+    return [
+      ...existing,
+      { value: CREATE_NEW_VALUE, label: "+ Create new lot" },
+    ];
+  }, [stockEntries]);
 
   const mutation = useMutation({
-    mutationFn: () => purchaseOrdersApi.confirm(poId, identifier),
+    mutationFn: () =>
+      purchaseOrdersApi.confirm(poId, {
+        stock_identifier: effectiveIdentifier,
+        expiry_date: isCreateNew && expiryDate
+          ? expiryDate.toISOString().split("T")[0]
+          : null,
+        stock_notes: isCreateNew ? stockNotes : "",
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
       queryClient.invalidateQueries({ queryKey: ["stock"] });
@@ -74,24 +110,65 @@ function ConfirmPOModal({
     },
   });
 
+  const handleClose = () => {
+    setSelectedValue(null);
+    setNewIdentifier("");
+    setExpiryDate(null);
+    setStockNotes("");
+    onClose();
+  };
+
   return (
-    <Modal opened={opened} onClose={onClose} title="Confirm Purchase Order">
+    <Modal opened={opened} onClose={handleClose} title="Confirm Purchase Order">
       <Stack>
         <Text size="sm" c="dimmed">
-          Confirming this order will add the stock with the identifier below. You can use an existing lot
-          identifier to add to existing stock, or a new one to create a new lot.
+          Select an existing stock lot to add inventory, or create a new lot.
         </Text>
-        <TextInput
-          label="Stock / Lot Identifier"
-          placeholder="e.g. LOT-2025-001"
-          value={identifier}
-          onChange={(e) => setIdentifier(e.target.value)}
-          required
-        />
+
+        {stockLoading ? (
+          <Center py="md"><Loader size="sm" /></Center>
+        ) : (
+          <Select
+            label="Stock / Lot Identifier"
+            placeholder="Select or create a lot"
+            data={stockOptions}
+            value={selectedValue}
+            onChange={setSelectedValue}
+            searchable
+            required
+          />
+        )}
+
+        {isCreateNew && (
+          <>
+            <Divider label="New lot details" labelPosition="center" />
+            <TextInput
+              label="Lot Identifier"
+              placeholder="e.g. LOT-2025-001"
+              value={newIdentifier}
+              onChange={(e) => setNewIdentifier(e.target.value)}
+              required
+            />
+            <DateInput
+              label="Expiry Date"
+              placeholder="Optional"
+              value={expiryDate}
+              onChange={setExpiryDate}
+              clearable
+            />
+            <Textarea
+              label="Notes"
+              placeholder="Optional notes for this lot"
+              value={stockNotes}
+              onChange={(e) => setStockNotes(e.target.value)}
+            />
+          </>
+        )}
+
         <Button
           onClick={() => mutation.mutate()}
           loading={mutation.isPending}
-          disabled={!identifier}
+          disabled={!effectiveIdentifier}
           color="green"
         >
           Confirm & Add Stock
@@ -164,7 +241,7 @@ export default function PurchaseOrderListPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [newOpened, { open: openNew, close: closeNew }] = useDisclosure(false);
-  const [confirmPoId, setConfirmPoId] = useState<number | null>(null);
+  const [confirmPo, setConfirmPo] = useState<{ poId: number; productId: number } | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -258,7 +335,7 @@ export default function PurchaseOrderListPage() {
                               color="green"
                               variant="light"
                               leftSection={<IconCheck size={14} />}
-                              onClick={() => setConfirmPoId(po.id)}
+                              onClick={() => setConfirmPo({ poId: po.id, productId: po.product })}
                             >
                               Confirm
                             </Button>
@@ -290,11 +367,12 @@ export default function PurchaseOrderListPage() {
       )}
 
       <NewPOModal opened={newOpened} onClose={closeNew} />
-      {confirmPoId && (
+      {confirmPo && (
         <ConfirmPOModal
-          poId={confirmPoId}
-          opened={!!confirmPoId}
-          onClose={() => setConfirmPoId(null)}
+          poId={confirmPo.poId}
+          productId={confirmPo.productId}
+          opened={!!confirmPo}
+          onClose={() => setConfirmPo(null)}
         />
       )}
     </Stack>

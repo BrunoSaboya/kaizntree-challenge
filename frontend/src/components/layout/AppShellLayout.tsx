@@ -13,11 +13,15 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconBox,
+  IconBrain,
+  IconChartBar,
   IconHome,
   IconLogout,
   IconPackage,
+  IconPlugConnected,
   IconShoppingCart,
   IconTruckDelivery,
+  IconUsers,
 } from "@tabler/icons-react";
 import logo from "@/assets/kaizntree_logo.svg";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -32,6 +36,10 @@ const navLinks = [
   { to: "/stock", label: "Stock", icon: <IconPackage size={18} /> },
   { to: "/purchase-orders", label: "Purchase Orders", icon: <IconTruckDelivery size={18} /> },
   { to: "/sales-orders", label: "Sales Orders", icon: <IconShoppingCart size={18} /> },
+  { to: "/suppliers", label: "Suppliers", icon: <IconUsers size={18} /> },
+  { to: "/forecasting", label: "Forecasting", icon: <IconChartBar size={18} /> },
+  { to: "/ai-assist", label: "AI Assistant", icon: <IconBrain size={18} /> },
+  { to: "/integrations", label: "Integrations", icon: <IconPlugConnected size={18} /> },
 ];
 
 export function AppShellLayout() {

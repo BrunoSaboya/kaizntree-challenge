@@ -33,6 +33,10 @@ LOCAL_APPS = [
     "apps.inventory",
     "apps.orders",
     "apps.financials",
+    "apps.suppliers",
+    "apps.forecasting",
+    "apps.ai_workflows",
+    "apps.integrations",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -123,7 +127,40 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_RATES": {
+        "ai_workflow": "10/min",
+    },
 }
+
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+
+# E-commerce integrations (optional — leave blank to disable)
+SHOPIFY_WEBHOOK_SECRET = os.environ.get("SHOPIFY_WEBHOOK_SECRET", "")
+SHOPIFY_SHOP_DOMAIN = os.environ.get("SHOPIFY_SHOP_DOMAIN", "")
+SHOPIFY_ACCESS_TOKEN = os.environ.get("SHOPIFY_ACCESS_TOKEN", "")
+
+AMAZON_SELLER_ID = os.environ.get("AMAZON_SELLER_ID", "")
+AMAZON_LWA_CLIENT_ID = os.environ.get("AMAZON_LWA_CLIENT_ID", "")
+AMAZON_LWA_CLIENT_SECRET = os.environ.get("AMAZON_LWA_CLIENT_SECRET", "")
+AMAZON_LWA_REFRESH_TOKEN = os.environ.get("AMAZON_LWA_REFRESH_TOKEN", "")
+AMAZON_AWS_ACCESS_KEY = os.environ.get("AMAZON_AWS_ACCESS_KEY", "")
+AMAZON_AWS_SECRET_KEY = os.environ.get("AMAZON_AWS_SECRET_KEY", "")
+AMAZON_MARKETPLACE_ID = os.environ.get("AMAZON_MARKETPLACE_ID", "ATVPDKIKX0DER")
+
+# ERP integrations (optional — leave blank to disable)
+QUICKBOOKS_CLIENT_ID = os.environ.get("QUICKBOOKS_CLIENT_ID", "")
+QUICKBOOKS_CLIENT_SECRET = os.environ.get("QUICKBOOKS_CLIENT_SECRET", "")
+QUICKBOOKS_REALM_ID = os.environ.get("QUICKBOOKS_REALM_ID", "")
+QUICKBOOKS_ACCESS_TOKEN = os.environ.get("QUICKBOOKS_ACCESS_TOKEN", "")
+QUICKBOOKS_REFRESH_TOKEN = os.environ.get("QUICKBOOKS_REFRESH_TOKEN", "")
+QUICKBOOKS_ENVIRONMENT = os.environ.get("QUICKBOOKS_ENVIRONMENT", "sandbox")
+
+NETSUITE_ACCOUNT_ID = os.environ.get("NETSUITE_ACCOUNT_ID", "")
+NETSUITE_CONSUMER_KEY = os.environ.get("NETSUITE_CONSUMER_KEY", "")
+NETSUITE_CONSUMER_SECRET = os.environ.get("NETSUITE_CONSUMER_SECRET", "")
+NETSUITE_TOKEN_ID = os.environ.get("NETSUITE_TOKEN_ID", "")
+NETSUITE_TOKEN_SECRET = os.environ.get("NETSUITE_TOKEN_SECRET", "")
+NETSUITE_SUBSIDIARY_ID = os.environ.get("NETSUITE_SUBSIDIARY_ID", "1")
 
 _access_lifetime_minutes = int(os.environ.get("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", "15"))
 _refresh_lifetime_days = int(os.environ.get("JWT_REFRESH_TOKEN_LIFETIME_DAYS", "7"))

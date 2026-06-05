@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Product, Stock
+from .models import Product, Stock, StockMovement
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -49,3 +49,13 @@ class StockSerializer(serializers.ModelSerializer):
         if product and product.owner != request.user:
             raise serializers.ValidationError({"product": "Product not found."})
         return attrs
+
+
+class StockMovementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StockMovement
+        fields = [
+            "id", "movement_type", "quantity_change",
+            "reference_type", "reference_id", "notes", "created_at",
+        ]
+        read_only_fields = fields

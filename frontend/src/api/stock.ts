@@ -22,4 +22,17 @@ export const stockApi = {
 
   expiringSoon: (days = 30) =>
     api.get<Stock[]>("/stock/expiring_soon/", { params: { days } }).then((r) => r.data),
+
+  movements: (stockId: number) =>
+    api.get<StockMovement[]>(`/stock/${stockId}/movements/`).then((r) => r.data),
 };
+
+export interface StockMovement {
+  id: number;
+  movement_type: string;
+  quantity_change: string;
+  reference_type: string;
+  reference_id: number | null;
+  notes: string;
+  created_at: string;
+}

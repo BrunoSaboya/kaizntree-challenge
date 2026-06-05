@@ -13,7 +13,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: process.env.VITE_API_URL || "http://localhost:8000",
+        // API_PROXY_TARGET is server-side only (no VITE_ prefix → never bundled into the browser).
+        // VITE_API_URL fallback keeps production Vercel builds working if someone sets that instead.
+        target: process.env.API_PROXY_TARGET || process.env.VITE_API_URL || "http://localhost:8000",
         changeOrigin: true,
       },
     },

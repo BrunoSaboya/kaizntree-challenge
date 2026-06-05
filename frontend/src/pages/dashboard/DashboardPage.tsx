@@ -16,12 +16,14 @@ import {
   Title,
   UnstyledButton,
 } from "@mantine/core";
+import { forecastingApi } from "@/api/forecasting";
 import { BarChart } from "@mantine/charts";
 import { useQuery } from "@tanstack/react-query";
 import {
   IconAlertTriangle,
   IconArrowRight,
   IconBox,
+  IconChartBar,
   IconCheck,
   IconPackage,
   IconShoppingCart,
@@ -216,6 +218,65 @@ function InventoryHealthCard({
   );
 }
 
+function ReorderAlertsCard({ criticalCount, lowCount }: { criticalCount: number; lowCount: number }) {
+  const navigate = useNavigate();
+  const total = criticalCount + lowCount;
+
+  return (
+    <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
+      <Group justify="space-between" mb="md">
+        <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+          Reorder Alerts
+        </Text>
+        <IconChartBar size={16} color="var(--mantine-color-dimmed)" />
+      </Group>
+      {total === 0 ? (
+        <Group gap="xs">
+          <ThemeIcon color="green" variant="light" size="md">
+            <IconCheck size={16} />
+          </ThemeIcon>
+          <Text size="sm" c="dimmed">All products adequately stocked</Text>
+        </Group>
+      ) : (
+        <Stack gap="xs">
+          {criticalCount > 0 && (
+            <UnstyledButton onClick={() => navigate("/forecasting")}>
+              <Group justify="space-between" p="xs" style={{ borderRadius: 8, border: "1px solid var(--mantine-color-orange-3)", background: "var(--mantine-color-orange-0)" }}>
+                <Group gap="xs">
+                  <ThemeIcon color="orange" variant="light" size="md">
+                    <IconAlertTriangle size={16} />
+                  </ThemeIcon>
+                  <div>
+                    <Text size="sm" fw={600}>{criticalCount} Critical</Text>
+                    <Text size="xs" c="dimmed">≤ 3 days of stock</Text>
+                  </div>
+                </Group>
+                <IconArrowRight size={16} color="var(--mantine-color-orange-6)" />
+              </Group>
+            </UnstyledButton>
+          )}
+          {lowCount > 0 && (
+            <UnstyledButton onClick={() => navigate("/forecasting")}>
+              <Group justify="space-between" p="xs" style={{ borderRadius: 8, border: "1px solid var(--mantine-color-yellow-3)", background: "var(--mantine-color-yellow-0)" }}>
+                <Group gap="xs">
+                  <ThemeIcon color="yellow" variant="light" size="md">
+                    <IconAlertTriangle size={16} />
+                  </ThemeIcon>
+                  <div>
+                    <Text size="sm" fw={600}>{lowCount} Low Stock</Text>
+                    <Text size="xs" c="dimmed">below reorder point</Text>
+                  </div>
+                </Group>
+                <IconArrowRight size={16} color="var(--mantine-color-yellow-6)" />
+              </Group>
+            </UnstyledButton>
+          )}
+        </Stack>
+      )}
+    </Card>
+  );
+}
+
 function ExpiringLotsCard({ lots }: { lots: Stock[] }) {
   const navigate = useNavigate();
 
@@ -299,6 +360,11 @@ export default function DashboardPage() {
     queryFn: () => stockApi.expiringSoon(30),
   });
 
+  const { data: reorderData } = useQuery({
+    queryKey: ["forecasting", "reorder-recommendations"],
+    queryFn: forecastingApi.reorderRecommendations,
+  });
+
   if (summaryLoading || productsLoading) {
     return <Center h={400}><Loader /></Center>;
   }
@@ -336,6 +402,9 @@ export default function DashboardPage() {
   const profitColor = parseFloat(summary?.total_profit ?? "0") >= 0 ? "green" : "red";
   const draftPOCount = draftPOs?.count ?? 0;
   const draftSOCount = draftSOs?.count ?? 0;
+  const reorderList = reorderData ?? [];
+  const criticalCount = reorderList.filter((r) => r.status === "CRITICAL" || r.status === "OUT_OF_STOCK").length;
+  const lowCount = reorderList.filter((r) => r.status === "LOW").length;
 
   return (
     <Stack>
@@ -386,10 +455,10 @@ export default function DashboardPage() {
       </SimpleGrid>
 
       <Grid>
-        <Grid.Col span={{ base: 12, md: 4 }}>
+        <Grid.Col span={{ base: 12, md: 3 }}>
           <PendingOrdersCard draftPOCount={draftPOCount} draftSOCount={draftSOCount} />
         </Grid.Col>
-        <Grid.Col span={{ base: 12, md: 4 }}>
+        <Grid.Col span={{ base: 12, md: 3 }}>
           <InventoryHealthCard
             outOfStock={outOfStock}
             lowStock={lowStock}
@@ -397,7 +466,10 @@ export default function DashboardPage() {
             total={totalProducts}
           />
         </Grid.Col>
-        <Grid.Col span={{ base: 12, md: 4 }}>
+        <Grid.Col span={{ base: 12, md: 3 }}>
+          <ReorderAlertsCard criticalCount={criticalCount} lowCount={lowCount} />
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, md: 3 }}>
           <ExpiringLotsCard lots={expiringLots ?? []} />
         </Grid.Col>
       </Grid>

@@ -22,8 +22,8 @@ export const purchaseOrdersApi = {
 
   delete: (id: number) => api.delete(`/purchase-orders/${id}/`),
 
-  confirm: (id: number, stockIdentifier: string) =>
-    api.post<PurchaseOrder>(`/purchase-orders/${id}/confirm/`, { stock_identifier: stockIdentifier }).then((r) => r.data),
+  confirm: (id: number, payload: { stock_identifier: string; expiry_date?: string | null; stock_notes?: string }) =>
+    api.post<PurchaseOrder>(`/purchase-orders/${id}/confirm/`, payload).then((r) => r.data),
 
   cancel: (id: number) =>
     api.post<PurchaseOrder>(`/purchase-orders/${id}/cancel/`).then((r) => r.data),

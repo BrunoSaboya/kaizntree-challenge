@@ -8,16 +8,18 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     product_sku = serializers.CharField(source="product.sku", read_only=True)
     total_cost = serializers.DecimalField(max_digits=12, decimal_places=4, read_only=True)
     stock_identifier = serializers.CharField(source="stock.identifier", read_only=True, default=None)
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True, default=None)
 
     class Meta:
         model = PurchaseOrder
         fields = [
             "id", "product", "product_name", "product_sku",
+            "supplier", "supplier_name",
             "stock", "stock_identifier",
             "quantity", "cost_per_unit", "total_cost",
             "status", "notes", "order_date", "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "status", "stock", "stock_identifier", "product_name", "product_sku", "total_cost", "created_at", "updated_at"]
+        read_only_fields = ["id", "status", "stock", "stock_identifier", "product_name", "product_sku", "total_cost", "supplier_name", "created_at", "updated_at"]
 
     def validate(self, attrs):
         request = self.context["request"]
@@ -32,13 +34,15 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         return value
 
     def validate_cost_per_unit(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Cost per unit must be greater than zero.")
+        if value < 0:
+            raise serializers.ValidationError("Cost per unit cannot be negative.")
         return value
 
 
 class ConfirmPurchaseOrderSerializer(serializers.Serializer):
     stock_identifier = serializers.CharField(max_length=100)
+    expiry_date = serializers.DateField(required=False, allow_null=True, default=None)
+    stock_notes = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class SalesOrderSerializer(serializers.ModelSerializer):
