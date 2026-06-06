@@ -20,6 +20,8 @@ export const usersApi = {
 
   deactivate: (id: number) => api.delete(`/users/${id}/`),
 
+  hardDelete: (id: number) => api.delete(`/users/${id}/hard-delete/`),
+
   reactivate: (id: number) =>
     api.patch<User>(`/users/${id}/`, { is_active: true }).then((r) => r.data),
 };

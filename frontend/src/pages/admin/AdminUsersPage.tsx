@@ -14,7 +14,8 @@ import {
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconEdit, IconUserCheck, IconUserOff } from "@tabler/icons-react";
+import { notifications } from "@mantine/notifications";
+import { IconEdit, IconTrash, IconUserCheck, IconUserOff } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -31,6 +32,7 @@ export default function AdminUsersPage() {
 
   const [modalOpen, { open, close }] = useDisclosure(false);
   const [editUser, setEditUser] = useState<User | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -80,6 +82,19 @@ export default function AdminUsersPage() {
   const reactivateMutation = useMutation({
     mutationFn: (id: number) => usersApi.reactivate(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+
+  const hardDeleteMutation = useMutation({
+    mutationFn: (id: number) => usersApi.hardDelete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      setDeleteTarget(null);
+    },
+    onError: (err: any) => {
+      const detail = err?.response?.data?.detail ?? "Failed to delete user.";
+      notifications.show({ color: "red", title: "Cannot delete", message: detail });
+      setDeleteTarget(null);
+    },
   });
 
   function handleSave() {
@@ -164,6 +179,10 @@ export default function AdminUsersPage() {
                           <IconUserCheck size={16} />
                         </ActionIcon>
                       )}
+                      <ActionIcon variant="subtle" color="red"
+                        onClick={() => setDeleteTarget(u)}>
+                        <IconTrash size={16} />
+                      </ActionIcon>
                     </Group>
                   )}
                 </Table.Td>
@@ -172,6 +191,27 @@ export default function AdminUsersPage() {
           </Table.Tbody>
         </Table>
       </Paper>
+
+      <Modal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Permanently Delete User"
+        size="sm"
+      >
+        <Stack>
+          <Text>
+            Are you sure you want to permanently delete{" "}
+            <Text span fw={600}>{deleteTarget?.email}</Text>? This action cannot be undone.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button color="red" loading={hardDeleteMutation.isPending}
+              onClick={() => deleteTarget && hardDeleteMutation.mutate(deleteTarget.id)}>
+              Delete Permanently
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <Modal
         opened={modalOpen}

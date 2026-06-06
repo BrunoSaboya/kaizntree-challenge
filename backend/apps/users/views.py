@@ -177,21 +177,55 @@ class AdminUserViewSet(
         user.save(update_fields=["is_active"])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=True, methods=["delete"], url_path="hard-delete")
+    def hard_delete(self, request, *args, **kwargs):
+        user = self.get_object()
+        if user.pk == request.user.pk:
+            return Response(
+                {"detail": "You cannot delete your own account."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if user.role == User.ROLE_ADMIN:
+            return Response(
+                {"detail": "Admin accounts cannot be deleted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        owned = user.owned_organizations.count()
+        if owned:
+            return Response(
+                {"detail": f"User owns {owned} organization(s). Delete or reassign them first."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class OrgViewSet(
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
     mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     """Admin manages organizations."""
     permission_classes = [IsAdmin]
     serializer_class = OrganizationSerializer
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
         return Organization.objects.all().select_related("owner").order_by("-created_at")
+
+    def destroy(self, request, *args, **kwargs):
+        org = self.get_object()
+        active_count = org.members.filter(is_active=True).count()
+        if active_count:
+            return Response(
+                {"detail": f"Organization has {active_count} active member(s). Deactivate or remove them first."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        org.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["post"])
     def provision(self, request):

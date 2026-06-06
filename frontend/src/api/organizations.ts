@@ -12,4 +12,6 @@ export const orgsApi = {
 
   update: (id: number, payload: Partial<CreateOrgPayload>) =>
     api.patch<Organization>(`/organizations/${id}/`, payload).then((r) => r.data),
+
+  deleteOrg: (id: number) => api.delete(`/organizations/${id}/`),
 };

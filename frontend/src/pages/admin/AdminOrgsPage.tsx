@@ -13,7 +13,8 @@ import {
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconEdit } from "@tabler/icons-react";
+import { notifications } from "@mantine/notifications";
+import { IconEdit, IconTrash } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -28,6 +29,7 @@ export default function AdminOrgsPage() {
 
   const [modalOpen, { open, close }] = useDisclosure(false);
   const [editOrg, setEditOrg] = useState<Organization | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Organization | null>(null);
 
   // Edit-mode fields
   const [name, setName] = useState("");
@@ -72,6 +74,19 @@ export default function AdminOrgsPage() {
     mutationFn: ({ id, payload }: { id: number; payload: Partial<CreateOrgPayload> }) =>
       orgsApi.update(id, payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["organizations"] }); close(); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => orgsApi.deleteOrg(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["organizations"] });
+      setDeleteTarget(null);
+    },
+    onError: (err: any) => {
+      const detail = err?.response?.data?.detail ?? "Failed to delete organization.";
+      notifications.show({ color: "red", title: "Cannot delete", message: detail });
+      setDeleteTarget(null);
+    },
   });
 
   function handleSave() {
@@ -122,13 +137,39 @@ export default function AdminOrgsPage() {
                 <Table.Td>{o.owner_email}</Table.Td>
                 <Table.Td>{new Date(o.created_at).toLocaleDateString()}</Table.Td>
                 <Table.Td>
-                  <ActionIcon variant="subtle" onClick={() => openEdit(o)}><IconEdit size={16} /></ActionIcon>
+                  <Group gap="xs" justify="flex-end">
+                    <ActionIcon variant="subtle" onClick={() => openEdit(o)}><IconEdit size={16} /></ActionIcon>
+                    <ActionIcon variant="subtle" color="red" onClick={() => setDeleteTarget(o)}>
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  </Group>
                 </Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>
         </Table>
       </Paper>
+
+      <Modal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete Organization"
+        size="sm"
+      >
+        <Stack>
+          <Text>
+            Are you sure you want to delete{" "}
+            <Text span fw={600}>{deleteTarget?.name}</Text>? This cannot be undone.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button color="red" loading={deleteMutation.isPending}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <Modal
         opened={modalOpen}

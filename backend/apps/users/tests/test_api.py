@@ -179,6 +179,33 @@ class TestAdminUserViewSet:
         user.refresh_from_db()
         assert user.is_active is False
 
+    def test_hard_delete_removes_user(self, admin_client, db, org):
+        member = User.objects.create_user(
+            email="todelete@example.com", username="todelete",
+            password="StrongPass123!", role=User.ROLE_MEMBER, organization=org,
+        )
+        r = admin_client.delete(f"/api/v1/users/{member.pk}/hard-delete/")
+        assert r.status_code == 204
+        assert not User.objects.filter(pk=member.pk).exists()
+
+    def test_hard_delete_blocked_for_self(self, admin_client, admin_user):
+        r = admin_client.delete(f"/api/v1/users/{admin_user.pk}/hard-delete/")
+        assert r.status_code == 400
+        assert "own account" in r.data["detail"]
+
+    def test_hard_delete_blocked_for_another_admin(self, admin_client, db):
+        other_admin = User.objects.create_user(
+            email="other_admin@example.com", username="otheradmin",
+            password="StrongPass123!", role=User.ROLE_ADMIN, organization=None,
+        )
+        r = admin_client.delete(f"/api/v1/users/{other_admin.pk}/hard-delete/")
+        assert r.status_code == 400
+
+    def test_hard_delete_blocked_when_owns_org(self, admin_client, user):
+        r = admin_client.delete(f"/api/v1/users/{user.pk}/hard-delete/")
+        assert r.status_code == 409
+        assert "organization" in r.data["detail"].lower()
+
 
 @pytest.mark.django_db
 class TestOrgViewSet:
@@ -189,6 +216,18 @@ class TestOrgViewSet:
     def test_non_admin_cannot_list_orgs(self, auth_client):
         r = auth_client.get("/api/v1/organizations/")
         assert r.status_code == 403
+
+    def test_delete_org_blocked_when_has_active_members(self, admin_client, org, user):
+        r = admin_client.delete(f"/api/v1/organizations/{org.pk}/")
+        assert r.status_code == 409
+        assert "active member" in r.data["detail"].lower()
+
+    def test_delete_org_success(self, admin_client, db):
+        from apps.users.models import Organization
+        empty_org = Organization.objects.create(name="Empty Org")
+        r = admin_client.delete(f"/api/v1/organizations/{empty_org.pk}/")
+        assert r.status_code == 204
+        assert not Organization.objects.filter(pk=empty_org.pk).exists()
 
 
 @pytest.mark.django_db
