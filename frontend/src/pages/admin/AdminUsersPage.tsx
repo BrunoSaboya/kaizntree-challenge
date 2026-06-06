@@ -5,7 +5,6 @@ import {
   Group,
   Modal,
   NativeSelect,
-  NumberInput,
   Paper,
   PasswordInput,
   Stack,

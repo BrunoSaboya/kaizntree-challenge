@@ -16,6 +16,7 @@ export interface User {
   role: UserRole;
   organization_id: number | null;
   organization_name: string | null;
+  is_active: boolean;
   date_joined: string;
 }
 
