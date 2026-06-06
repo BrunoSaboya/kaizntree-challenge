@@ -380,13 +380,3 @@ Because Vercel and Railway are on different domains, session persistence is dual
 `sessionStorage` survives page reloads but clears on tab close. In local development, `SameSite=Lax; Secure=False` is used (same-origin via Docker Compose / Nginx).
 
 ---
-
-## What I Would Add With More Time
-
-- **Celery + Redis** for async tasks (low-stock alert emails, scheduled expiry notifications)
-- **Product images** via S3
-- **Date range filtering** on financial reports and order lists
-- **CSV export** for stock, orders, and financial summaries
-- **Webhook delivery logs** — persist incoming integration events for debugging
-- **OAuth callback UI** — in-app flow to connect QuickBooks/NetSuite without manual env var setup
-- **Audit log** on user and organization management actions (admin operations currently have no trail)
