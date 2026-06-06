@@ -161,8 +161,18 @@ class AdminUserViewSet(
     def get_queryset(self):
         return User.objects.all().select_related("organization").order_by("-date_joined")
 
+    def perform_update(self, serializer):
+        if self.get_object().role == User.ROLE_ADMIN:
+            raise PermissionDenied("Admin users cannot be modified from this endpoint.")
+        serializer.save()
+
     def destroy(self, request, *args, **kwargs):
         user = self.get_object()
+        if user.role == User.ROLE_ADMIN:
+            return Response(
+                {"detail": "Admin users cannot be deactivated."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         user.is_active = False
         user.save(update_fields=["is_active"])
         return Response(status=status.HTTP_204_NO_CONTENT)

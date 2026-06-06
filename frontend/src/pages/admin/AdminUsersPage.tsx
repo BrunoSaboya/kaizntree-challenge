@@ -14,7 +14,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconEdit, IconUserOff } from "@tabler/icons-react";
+import { IconEdit, IconUserCheck, IconUserOff } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -77,6 +77,11 @@ export default function AdminUsersPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 
+  const reactivateMutation = useMutation({
+    mutationFn: (id: number) => usersApi.reactivate(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+
   function handleSave() {
     if (editUser) {
       updateMutation.mutate({
@@ -128,7 +133,7 @@ export default function AdminUsersPage() {
             ) : users.length === 0 ? (
               <Table.Tr><Table.Td colSpan={6}><Text ta="center" c="dimmed">No users found.</Text></Table.Td></Table.Tr>
             ) : users.map((u) => (
-              <Table.Tr key={u.id} style={{ opacity: u.is_active === false ? 0.5 : 1 }}>
+              <Table.Tr key={u.id} style={{ opacity: u.is_active ? 1 : 0.5 }}>
                 <Table.Td>{u.email}</Table.Td>
                 <Table.Td>{u.username}</Table.Td>
                 <Table.Td>
@@ -138,22 +143,29 @@ export default function AdminUsersPage() {
                 </Table.Td>
                 <Table.Td>{u.organization_name ?? "—"}</Table.Td>
                 <Table.Td>
-                  <Badge color={(u as any).is_active === false ? "red" : "green"} variant="dot" size="sm">
-                    {(u as any).is_active === false ? "Inactive" : "Active"}
+                  <Badge color={u.is_active ? "green" : "red"} variant="dot" size="sm">
+                    {u.is_active ? "Active" : "Inactive"}
                   </Badge>
                 </Table.Td>
                 <Table.Td>
-                  <Group gap="xs" justify="flex-end">
-                    <ActionIcon variant="subtle" onClick={() => openEdit(u)}><IconEdit size={16} /></ActionIcon>
-                    <ActionIcon
-                      variant="subtle"
-                      color="red"
-                      onClick={() => deactivateMutation.mutate(u.id)}
-                      disabled={(u as any).is_active === false}
-                    >
-                      <IconUserOff size={16} />
-                    </ActionIcon>
-                  </Group>
+                  {u.role !== "admin" && (
+                    <Group gap="xs" justify="flex-end">
+                      <ActionIcon variant="subtle" onClick={() => openEdit(u)}>
+                        <IconEdit size={16} />
+                      </ActionIcon>
+                      {u.is_active ? (
+                        <ActionIcon variant="subtle" color="red"
+                          onClick={() => deactivateMutation.mutate(u.id)}>
+                          <IconUserOff size={16} />
+                        </ActionIcon>
+                      ) : (
+                        <ActionIcon variant="subtle" color="green"
+                          onClick={() => reactivateMutation.mutate(u.id)}>
+                          <IconUserCheck size={16} />
+                        </ActionIcon>
+                      )}
+                    </Group>
+                  )}
                 </Table.Td>
               </Table.Tr>
             ))}
@@ -182,7 +194,6 @@ export default function AdminUsersPage() {
             value={role}
             onChange={(e) => setRole(e.currentTarget.value as UserRole)}
             data={[
-              { value: "admin", label: "Admin" },
               { value: "owner", label: "Owner" },
               { value: "member", label: "Member" },
             ]}

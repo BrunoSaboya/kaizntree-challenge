@@ -19,6 +19,9 @@ export const usersApi = {
     api.patch<User>(`/users/${id}/`, payload).then((r) => r.data),
 
   deactivate: (id: number) => api.delete(`/users/${id}/`),
+
+  reactivate: (id: number) =>
+    api.patch<User>(`/users/${id}/`, { is_active: true }).then((r) => r.data),
 };
 
 export const membersApi = {
