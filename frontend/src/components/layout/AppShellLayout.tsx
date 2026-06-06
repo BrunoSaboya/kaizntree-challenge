@@ -134,7 +134,7 @@ export function AppShellLayout() {
               <Group gap="xs">
                 <img src={logo} alt="Kaizntree logo" width={28} height={28} style={{ borderRadius: "50%" }} />
                 <Title order={4} fw={700} c="#002c10">
-                  Kaizntree
+                  {user?.organization_name ?? "Kaizntree"}
                 </Title>
               </Group>
             </Group>
