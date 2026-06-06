@@ -5,7 +5,7 @@ export const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   g: "Grams",
   l: "Litres",
   ml: "Millilitres",
-  count: "Count",
+  count: "Unit",
 };
 
 export interface Product {

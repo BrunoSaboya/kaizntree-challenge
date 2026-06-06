@@ -10,6 +10,13 @@ A full-stack, multi-tenant inventory management platform for F&B CPG brands, bui
 | **API** | https://kaizntree-challenge-production.up.railway.app/api/v1/ |
 | **Swagger UI** | https://kaizntree-challenge-production.up.railway.app/api/schema/swagger-ui/ |
 
+A pre-seeded demo account is available with realistic CPG data (products, confirmed orders, financials, stock movements):
+
+| Field | Value |
+|---|---|
+| **Email** | `demo@kaizntree.com` |
+| **Password** | `demo1234` |
+
 ## Quick Start
 
 ```bash
@@ -84,6 +91,41 @@ The only variables required to boot are `DJANGO_SECRET_KEY`, `DJANGO_SETTINGS_MO
 | Infra | Docker Compose, PostgreSQL 16, Nginx, Railway (backend + DB), Vercel (frontend) |
 | Tests | pytest-django, factory-boy, pytest-cov |
 | CI | GitHub Actions (pytest + tsc) |
+
+## Architecture Overview
+
+```mermaid
+graph TD
+    Browser["Browser\n(React SPA — Vercel)"]
+
+    subgraph Railway
+        API["Django API\n(Gunicorn + DRF)"]
+        DB[("PostgreSQL 16")]
+    end
+
+    subgraph "External Services"
+        Anthropic["Anthropic API\n(Claude Haiku — AI parsing)"]
+        Shopify["Shopify\n(webhook → draft SO)"]
+        Amazon["Amazon SP-API\n(order polling)"]
+        QB["QuickBooks Online\n(PO → Bill sync)"]
+        NetSuite["NetSuite\n(VendorBill sync)"]
+    end
+
+    Browser -->|"HTTPS\nBearer token (memory)\n+ httpOnly refresh cookie"| API
+    API --> DB
+    API -->|"tool_use"| Anthropic
+    Shopify -->|"HMAC-SHA256 webhook"| API
+    API -->|"SigV4 + LWA OAuth2"| Amazon
+    API -->|"OAuth 2.0"| QB
+    API -->|"OAuth 1.0a TBA"| NetSuite
+```
+
+**Request path for business data:**
+1. React calls `/api/v1/*` with `Authorization: Bearer <access_token>` (held in Zustand memory, never localStorage)
+2. Django authenticates via simplejwt, then `OrgScopedMixin` filters the queryset to `organization=request.user.organization` — cross-org access always returns 404
+3. Stock-mutating operations (confirm/cancel orders) run in `transaction.atomic()` with `select_for_update()` + `F()` expressions to prevent race conditions
+
+---
 
 ## Features
 
@@ -375,6 +417,19 @@ The app is deployed as two independent services: Railway hosts the Django backen
 `railway.toml` tells Railway to build from the backend `Dockerfile` (production stage), healthcheck at `GET /health`, and restart on failure.
 
 The production Dockerfile runs `collectstatic` at build time and starts Gunicorn bound to `$PORT`. `entrypoint.sh` waits for PostgreSQL using `pg_isready` before running migrations.
+
+To seed the demo account on any environment:
+
+```bash
+# Railway
+railway run python manage.py seed_demo
+
+# Docker Compose (local)
+docker compose run --rm backend python manage.py seed_demo
+
+# Reset and recreate
+python manage.py seed_demo --reset
+```
 
 **Required Railway environment variables:**
 

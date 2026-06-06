@@ -6,7 +6,7 @@ class UnitType(models.TextChoices):
     G = "g", "Grams"
     L = "l", "Litres"
     ML = "ml", "Millilitres"
-    COUNT = "count", "Count"
+    COUNT = "count", "Unit"
 
 
 class Product(models.Model):
