@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         email = options["email"]
-        if User.objects.filter(email=email).exists():
+        if User.objects.filter(email=email, organization__isnull=True).exists():
             self.stderr.write(f"User with email '{email}' already exists.")
             return
 

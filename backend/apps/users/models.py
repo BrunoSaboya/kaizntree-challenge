@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 
 
@@ -32,7 +33,12 @@ class User(AbstractUser):
         (ROLE_MEMBER, "Member"),
     ]
 
-    email = models.EmailField(unique=True)
+    username = models.CharField(
+        max_length=150,
+        validators=[UnicodeUsernameValidator()],
+        help_text="Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.",
+    )
+    email = models.EmailField()
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_OWNER)
     organization = models.ForeignKey(
         "users.Organization",
@@ -47,6 +53,28 @@ class User(AbstractUser):
 
     class Meta:
         db_table = "users"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["email", "organization"],
+                condition=models.Q(organization__isnull=False),
+                name="unique_email_per_org",
+            ),
+            models.UniqueConstraint(
+                fields=["username", "organization"],
+                condition=models.Q(organization__isnull=False),
+                name="unique_username_per_org",
+            ),
+            models.UniqueConstraint(
+                fields=["email"],
+                condition=models.Q(organization__isnull=True),
+                name="unique_email_no_org",
+            ),
+            models.UniqueConstraint(
+                fields=["username"],
+                condition=models.Q(organization__isnull=True),
+                name="unique_username_no_org",
+            ),
+        ]
 
     def __str__(self):
         return self.email

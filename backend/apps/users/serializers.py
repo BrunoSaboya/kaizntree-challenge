@@ -40,12 +40,12 @@ class ProvisionOrgSerializer(serializers.Serializer):
     owner_last_name = serializers.CharField(max_length=150, required=False, default="")
 
     def validate_owner_email(self, value):
-        if User.objects.filter(email=value).exists():
+        if User.objects.filter(email=value, organization__isnull=True).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
 
     def validate_owner_username(self, value):
-        if User.objects.filter(username=value).exists():
+        if User.objects.filter(username=value, organization__isnull=True).exists():
             raise serializers.ValidationError("A user with this username already exists.")
         return value
 
@@ -92,6 +92,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"organization": "Non-admin users must belong to an organization."}
             )
+        email = attrs.get("email")
+        username = attrs.get("username")
+        qs = User.objects.filter(organization=org) if org else User.objects.filter(organization__isnull=True)
+        if email and qs.filter(email=email).exists():
+            raise serializers.ValidationError({"email": "A user with this email already exists in this organization."})
+        if username and qs.filter(username=username).exists():
+            raise serializers.ValidationError({"username": "A user with this username already exists in this organization."})
         return attrs
 
     def create(self, validated_data):
@@ -127,6 +134,18 @@ class MemberCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["email", "username", "first_name", "last_name", "password"]
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        org = request.user.organization if request else None
+        qs = User.objects.filter(organization=org) if org else User.objects.none()
+        email = attrs.get("email")
+        username = attrs.get("username")
+        if email and qs.filter(email=email).exists():
+            raise serializers.ValidationError({"email": "A user with this email already exists in this organization."})
+        if username and qs.filter(username=username).exists():
+            raise serializers.ValidationError({"username": "A user with this username already exists in this organization."})
+        return attrs
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
