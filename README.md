@@ -36,6 +36,43 @@ docker compose up --build   # override file is auto-loaded
 docker compose run --rm backend pytest
 ```
 
+## Credentials & Configuration
+
+### Local development
+
+Copy the example file and fill in only what you want to test — everything except the Postgres/Django vars is optional:
+
+```bash
+cp .env.example .env
+# Edit .env — the app boots and runs without any third-party credentials
+docker compose up --build
+```
+
+The app degrades gracefully: missing credentials disable only the relevant feature, not the whole application.
+
+| Credential(s) | Where to get them | What breaks without them |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API Keys | AI invoice parsing returns `503`; all other features work |
+| `SHOPIFY_WEBHOOK_SECRET`, `SHOPIFY_*` | Shopify Admin → Settings → Notifications → Webhooks | Shopify webhook endpoint returns `503` |
+| `AMAZON_*` | Seller Central → Apps & Services → Develop Apps | Amazon order polling returns `503` |
+| `QUICKBOOKS_*` | [developer.intuit.com](https://developer.intuit.com) → My Apps | QuickBooks sync returns `503` |
+| `NETSUITE_*` | NetSuite Admin → Setup → Integration → Manage Integrations | NetSuite sync returns `503` |
+
+The `GET /api/v1/integrations/status/` endpoint shows which platforms are active without requiring authentication.
+
+### Railway (production)
+
+Open the Railway project → backend service → **Variables** tab and add the variables from `.env.example`. Railway restarts the service automatically. Alternatively, use the CLI:
+
+```bash
+railway variables set ANTHROPIC_API_KEY=sk-ant-...
+railway variables set SHOPIFY_WEBHOOK_SECRET=...
+```
+
+The only variables required to boot are `DJANGO_SECRET_KEY`, `DJANGO_SETTINGS_MODULE=kaizntree.settings.production`, `DATABASE_URL` (auto-injected by the Railway PostgreSQL plugin), and `CORS_ALLOWED_ORIGINS`.
+
+---
+
 ## Tech Stack
 
 | Layer | Choice |
