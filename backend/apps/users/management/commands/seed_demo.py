@@ -4,8 +4,9 @@ Creates (or resets) a demo organization with realistic CPG data so evaluators
 can log in immediately and see a populated dashboard.
 
 Usage:
-    python manage.py seed_demo              # create if not present
-    python manage.py seed_demo --reset      # wipe and recreate
+    python manage.py seed_demo                          # create default demo account
+    python manage.py seed_demo --reset                  # wipe and recreate default demo
+    python manage.py seed_demo --email owner@drinkco.com  # seed into existing user's org
 """
 
 from datetime import date, timedelta
@@ -82,8 +83,15 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--reset", action="store_true", help="Delete existing demo data and recreate it.")
+        parser.add_argument("--email", type=str, default=None, help="Seed into an existing user's organization instead of creating the default demo account.")
 
     def handle(self, *args, **options):
+        target_email = options["email"]
+
+        if target_email:
+            self._seed_existing(target_email)
+            return
+
         if options["reset"]:
             self._wipe()
         elif User.objects.filter(email=DEMO_EMAIL).exists():
@@ -96,6 +104,21 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"\nDemo account ready:\n  Email:    {DEMO_EMAIL}\n  Password: {DEMO_PASSWORD}\n  Org:      {DEMO_ORG}\n"
         ))
+
+    def _seed_existing(self, email):
+        user = User.objects.filter(email=email).first()
+        if not user:
+            self.stdout.write(self.style.ERROR(f"No user found with email: {email}"))
+            return
+        org = user.organization
+        if not org:
+            self.stdout.write(self.style.ERROR(f"User {email} has no organization."))
+            return
+
+        with transaction.atomic():
+            self._populate_org(org)
+
+        self.stdout.write(self.style.SUCCESS(f"\nSeeded org '{org.name}' for {email}.\n"))
 
     def _wipe(self):
         users = User.objects.filter(email=DEMO_EMAIL)
@@ -119,10 +142,11 @@ class Command(BaseCommand):
         )
         org.owner = user
         org.save(update_fields=["owner"])
+        self._populate_org(org)
 
+    def _populate_org(self, org):
         suppliers = [Supplier.objects.create(organization=org, **s) for s in SUPPLIERS]
         products = [Product.objects.create(organization=org, **p) for p in PRODUCTS]
-
         today = date.today()
 
         # Confirmed purchase orders
