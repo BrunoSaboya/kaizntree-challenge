@@ -29,5 +29,13 @@ done
 echo "Running migrations..."
 python manage.py migrate --noinput
 
+if [ -n "$BOOTSTRAP_ADMIN_EMAIL" ] && [ -n "$BOOTSTRAP_ADMIN_USERNAME" ] && [ -n "$BOOTSTRAP_ADMIN_PASSWORD" ]; then
+  echo "Bootstrapping admin account..."
+  python manage.py create_admin \
+    --email="$BOOTSTRAP_ADMIN_EMAIL" \
+    --username="$BOOTSTRAP_ADMIN_USERNAME" \
+    --password="$BOOTSTRAP_ADMIN_PASSWORD" || true
+fi
+
 echo "Starting server..."
 exec "$@"

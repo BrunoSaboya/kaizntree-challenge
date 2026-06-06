@@ -87,7 +87,7 @@ class TestParsePurchaseOrderView:
 
     def test_product_fuzzy_match_found(self, auth_client, user, monkeypatch):
         monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
-        ProductFactory(owner=user, name="Organic Oats", sku="OAT-001")
+        ProductFactory(organization=user.organization, name="Organic Oats", sku="OAT-001")
         extracted = {
             "supplier_name": "Acme",
             "line_items": [{"raw_product_name": "Organic Oats", "quantity": 50}],

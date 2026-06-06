@@ -3,6 +3,8 @@ from django.http import JsonResponse
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from apps.users.urls import auth_urlpatterns, mgmt_urlpatterns
+
 
 def health(_request):
     """Lightweight liveness probe — no DB query, instant 200."""
@@ -25,7 +27,8 @@ urlpatterns = [
     path("health", health),
     path("health/", health, name="health"),
     path("admin/", admin.site.urls),
-    path("api/v1/auth/", include("apps.users.urls")),
+    path("api/v1/auth/", include((auth_urlpatterns, "auth"))),
+    path("api/v1/", include((mgmt_urlpatterns, "mgmt"))),
     path("api/v1/", include("apps.inventory.urls")),
     path("api/v1/", include("apps.orders.urls")),
     path("api/v1/", include("apps.financials.urls")),

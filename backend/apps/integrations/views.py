@@ -70,9 +70,8 @@ class ShopifyWebhookView(APIView):
 
             if sku:
                 # Webhook is machine-to-machine and has no user context — we look up
-                # products across all owners where the SKU matches.
-                # In a multi-tenant production deployment you'd store the shop→owner
-                # mapping and filter by owner instead.
+                # products across all organizations where the SKU matches.
+                # In production, store the shop→organization mapping and filter by org.
                 product = Product.objects.filter(sku=sku).first()
 
             if product is None:
@@ -82,7 +81,7 @@ class ShopifyWebhookView(APIView):
             from apps.orders.models import SalesOrder, OrderStatus
             import datetime
             so = SalesOrder.objects.create(
-                owner=product.owner,
+                organization=product.organization,
                 product=product,
                 quantity=item["quantity"],
                 price_per_unit=item["price_per_unit"],

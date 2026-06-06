@@ -113,7 +113,7 @@ def parse_purchase_order_document(text: str, user) -> dict:
     if not api_key:
         raise AIServiceUnavailableError("ANTHROPIC_API_KEY is not configured")
 
-    catalog = list(Product.objects.filter(owner=user).values("id", "name", "sku"))
+    catalog = list(Product.objects.filter(organization=user.organization).values("id", "name", "sku"))
 
     system_prompt = (
         "You are a document parsing assistant for a CPG inventory management system. "

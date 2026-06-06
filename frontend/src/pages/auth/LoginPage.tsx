@@ -1,5 +1,4 @@
 import {
-  Anchor,
   Box,
   Button,
   Center,
@@ -13,7 +12,7 @@ import {
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useMutation } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { zodResolver } from "mantine-form-zod-resolver";
 import { z } from "zod";
 
@@ -77,11 +76,8 @@ export default function LoginPage() {
             </Stack>
           </form>
         </Paper>
-        <Text ta="center" mt="md" size="sm">
-          Don&apos;t have an account?{" "}
-          <Anchor component={Link} to="/register">
-            Create one
-          </Anchor>
+        <Text ta="center" mt="md" size="sm" c="dimmed">
+          Contact your administrator to create an account.
         </Text>
       </Box>
     </Center>

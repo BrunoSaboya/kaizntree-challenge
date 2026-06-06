@@ -25,12 +25,12 @@ _LOOKBACK_DAYS = 30
 _Z_95 = 1.65  # 95% service level z-score
 
 
-def _daily_consumption_series(product_id: int, owner, lookback_days: int) -> list[float]:
+def _daily_consumption_series(product_id: int, org, lookback_days: int) -> list[float]:
     """Returns a list of daily consumption quantities (outbound only) over the lookback window."""
     cutoff = date.today() - timedelta(days=lookback_days)
     movements = (
         StockMovement.objects.filter(
-            owner=owner,
+            organization=org,
             product_id=product_id,
             movement_type=MovementType.SALES_CONFIRMED,
             created_at__date__gte=cutoff,
@@ -51,9 +51,9 @@ def _daily_consumption_series(product_id: int, owner, lookback_days: int) -> lis
     return series
 
 
-def _current_stock(product_id: int, owner) -> Decimal:
+def _current_stock(product_id: int, org) -> Decimal:
     result = (
-        Product.objects.filter(pk=product_id, owner=owner)
+        Product.objects.filter(pk=product_id, organization=org)
         .annotate(total=Sum("stock_entries__quantity"))
         .values_list("total", flat=True)
         .first()
@@ -71,29 +71,29 @@ def _reorder_status(days_of_stock, reorder_point, current_stock_val, avg_daily) 
     return "OK"
 
 
-def get_reorder_recommendations(user) -> list[dict]:
+def get_reorder_recommendations(org) -> list[dict]:
     from apps.suppliers.models import Supplier
 
     supplier_lead_times: dict[int, int] = {}
-    for s in Supplier.objects.filter(owner=user, active=True).values("id", "lead_time_days"):
+    for s in Supplier.objects.filter(organization=org, active=True).values("id", "lead_time_days"):
         supplier_lead_times[s["id"]] = s["lead_time_days"]
 
     from apps.orders.models import PurchaseOrder
     product_supplier_lead: dict[int, int] = {}
     for po in (
-        PurchaseOrder.objects.filter(owner=user, supplier__isnull=False)
+        PurchaseOrder.objects.filter(organization=org, supplier__isnull=False)
         .values("product_id", "supplier__lead_time_days")
         .order_by("product_id", "-order_date")
         .distinct("product_id")
     ):
         product_supplier_lead[po["product_id"]] = po["supplier__lead_time_days"] or 7
 
-    products = Product.objects.filter(owner=user).order_by("name")
+    products = Product.objects.filter(organization=org).order_by("name")
     results = []
 
     for product in products:
         lead_time_days = product_supplier_lead.get(product.pk, 7)
-        series = _daily_consumption_series(product.pk, user, _LOOKBACK_DAYS)
+        series = _daily_consumption_series(product.pk, org, _LOOKBACK_DAYS)
         avg_daily = sum(series) / len(series) if series else 0.0
 
         try:
@@ -104,7 +104,7 @@ def get_reorder_recommendations(user) -> list[dict]:
         safety_stock = _Z_95 * sigma * math.sqrt(max(lead_time_days, 1))
         reorder_point = avg_daily * lead_time_days + safety_stock
 
-        current = float(_current_stock(product.pk, user))
+        current = float(_current_stock(product.pk, org))
         days_of_stock = (current / avg_daily) if avg_daily > 0 else None
 
         recommended_reorder_qty = max(

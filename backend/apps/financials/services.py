@@ -12,7 +12,7 @@ def _round(value: Optional[Decimal], places: int = 2) -> Optional[Decimal]:
     return round(value, places)
 
 
-def get_financials_queryset(user):
+def get_financials_queryset(org):
     """
     Returns a queryset of Products annotated with financial aggregates.
     All aggregation happens in a single DB query.
@@ -27,7 +27,7 @@ def get_financials_queryset(user):
     )
 
     return (
-        Product.objects.filter(owner=user)
+        Product.objects.filter(organization=org)
         .annotate(
             total_cost=Sum(cost_expr, filter=Q(purchase_orders__status="confirmed"), default=Decimal("0")),
             total_revenue=Sum(revenue_expr, filter=Q(sales_orders__status="confirmed"), default=Decimal("0")),
@@ -73,26 +73,27 @@ def _build_product_row(product) -> dict:
     }
 
 
-def get_product_financials(user, product_id: int) -> dict:
-    qs = get_financials_queryset(user).filter(pk=product_id)
+def get_product_financials(org, product_id: int) -> dict:
+    qs = get_financials_queryset(org).filter(pk=product_id)
     product = qs.first()
     if product is None:
         return {}
     return _build_product_row(product)
 
 
-def get_all_product_financials(user) -> list[dict]:
-    return [_build_product_row(p) for p in get_financials_queryset(user)]
+def get_all_product_financials(org) -> list[dict]:
+    return [_build_product_row(p) for p in get_financials_queryset(org)]
 
 
-def get_summary(user) -> dict:
-    rows = get_all_product_financials(user)
-    total_cost = sum(r["total_cost"] or 0 for r in rows)
-    total_revenue = sum(r["total_revenue"] or 0 for r in rows)
+def get_summary(org) -> dict:
+    rows = get_all_product_financials(org)
+    zero = Decimal("0")
+    total_cost = sum((r["total_cost"] or zero for r in rows), zero)
+    total_revenue = sum((r["total_revenue"] or zero for r in rows), zero)
     total_profit = total_revenue - total_cost
     overall_margin = (total_profit / total_cost * 100) if total_cost > 0 else None
 
-    total_inventory_value = sum(r["inventory_value"] or 0 for r in rows)
+    total_inventory_value = sum((r["inventory_value"] or zero for r in rows), zero)
 
     return {
         "total_cost": _round(total_cost),

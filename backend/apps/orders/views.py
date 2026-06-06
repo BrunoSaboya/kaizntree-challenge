@@ -3,7 +3,7 @@ from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.inventory.views import OwnedModelMixin
+from apps.inventory.views import OrgScopedMixin
 
 from .models import PurchaseOrder, SalesOrder
 from .serializers import ConfirmPurchaseOrderSerializer, PurchaseOrderSerializer, SalesOrderSerializer
@@ -15,7 +15,7 @@ from .services import (
 )
 
 
-class PurchaseOrderViewSet(OwnedModelMixin, viewsets.ModelViewSet):
+class PurchaseOrderViewSet(OrgScopedMixin, viewsets.ModelViewSet):
     serializer_class = PurchaseOrderSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["product", "status"]
@@ -24,7 +24,7 @@ class PurchaseOrderViewSet(OwnedModelMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         return (
-            PurchaseOrder.objects.filter(owner=self.request.user)
+            PurchaseOrder.objects.filter(organization=self.request.user.organization)
             .select_related("product", "stock")
         )
 
@@ -55,7 +55,7 @@ class PurchaseOrderViewSet(OwnedModelMixin, viewsets.ModelViewSet):
         return Response(PurchaseOrderSerializer(updated_po, context={"request": request}).data)
 
 
-class SalesOrderViewSet(OwnedModelMixin, viewsets.ModelViewSet):
+class SalesOrderViewSet(OrgScopedMixin, viewsets.ModelViewSet):
     serializer_class = SalesOrderSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["product", "status"]
@@ -64,7 +64,7 @@ class SalesOrderViewSet(OwnedModelMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         return (
-            SalesOrder.objects.filter(owner=self.request.user)
+            SalesOrder.objects.filter(organization=self.request.user.organization)
             .select_related("product", "stock")
         )
 

@@ -27,8 +27,8 @@ class TestConfirmPurchaseOrder:
 
     def test_confirm_increments_existing_stock(self, db):
         product = ProductFactory()
-        StockFactory(product=product, owner=product.owner, identifier="LOT-001", quantity=Decimal("50"))
-        po = PurchaseOrderFactory(product=product, owner=product.owner, quantity=Decimal("100"))
+        StockFactory(product=product, organization=product.organization, identifier="LOT-001", quantity=Decimal("50"))
+        po = PurchaseOrderFactory(product=product, organization=product.organization, quantity=Decimal("100"))
         confirm_purchase_order(po, "LOT-001")
         stock = Stock.objects.get(product=product, identifier="LOT-001")
         assert stock.quantity == Decimal("150")
@@ -57,23 +57,23 @@ class TestConfirmPurchaseOrder:
 class TestConfirmSalesOrder:
     def test_confirm_decrements_stock(self, db):
         product = ProductFactory()
-        stock = StockFactory(product=product, owner=product.owner, quantity=Decimal("100"))
-        so = SalesOrderFactory(product=product, owner=product.owner, stock=stock, quantity=Decimal("30"))
+        stock = StockFactory(product=product, organization=product.organization, quantity=Decimal("100"))
+        so = SalesOrderFactory(product=product, organization=product.organization, stock=stock, quantity=Decimal("30"))
         confirm_sales_order(so)
         stock.refresh_from_db()
         assert stock.quantity == Decimal("70")
 
     def test_confirm_insufficient_stock_raises(self, db):
         product = ProductFactory()
-        stock = StockFactory(product=product, owner=product.owner, quantity=Decimal("5"))
-        so = SalesOrderFactory(product=product, owner=product.owner, stock=stock, quantity=Decimal("10"))
+        stock = StockFactory(product=product, organization=product.organization, quantity=Decimal("5"))
+        so = SalesOrderFactory(product=product, organization=product.organization, stock=stock, quantity=Decimal("10"))
         with pytest.raises(ValidationError, match="Insufficient"):
             confirm_sales_order(so)
 
     def test_confirm_twice_raises(self, db):
         product = ProductFactory()
-        stock = StockFactory(product=product, owner=product.owner, quantity=Decimal("100"))
-        so = SalesOrderFactory(product=product, owner=product.owner, stock=stock, quantity=Decimal("10"))
+        stock = StockFactory(product=product, organization=product.organization, quantity=Decimal("100"))
+        so = SalesOrderFactory(product=product, organization=product.organization, stock=stock, quantity=Decimal("10"))
         confirm_sales_order(so)
         so.refresh_from_db()
         with pytest.raises(ValidationError):
@@ -81,8 +81,8 @@ class TestConfirmSalesOrder:
 
     def test_cancel_confirmed_restores_stock(self, db):
         product = ProductFactory()
-        stock = StockFactory(product=product, owner=product.owner, quantity=Decimal("100"))
-        so = SalesOrderFactory(product=product, owner=product.owner, stock=stock, quantity=Decimal("30"))
+        stock = StockFactory(product=product, organization=product.organization, quantity=Decimal("100"))
+        so = SalesOrderFactory(product=product, organization=product.organization, stock=stock, quantity=Decimal("30"))
         confirm_sales_order(so)
         stock.refresh_from_db()
         assert stock.quantity == Decimal("70")
@@ -94,8 +94,8 @@ class TestConfirmSalesOrder:
 
     def test_cancel_draft_does_not_touch_stock(self, db):
         product = ProductFactory()
-        stock = StockFactory(product=product, owner=product.owner, quantity=Decimal("100"))
-        so = SalesOrderFactory(product=product, owner=product.owner, stock=stock, quantity=Decimal("30"))
+        stock = StockFactory(product=product, organization=product.organization, quantity=Decimal("100"))
+        so = SalesOrderFactory(product=product, organization=product.organization, stock=stock, quantity=Decimal("30"))
         cancel_sales_order(so)
         stock.refresh_from_db()
         assert stock.quantity == Decimal("100")
@@ -105,7 +105,7 @@ class TestConfirmSalesOrder:
         from apps.orders.models import SalesOrder
         import datetime
         so = SalesOrder.objects.create(
-            owner=product.owner,
+            organization=product.organization,
             product=product,
             stock=None,
             quantity=Decimal("10"),

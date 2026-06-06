@@ -18,7 +18,7 @@ class ProductSerializer(serializers.ModelSerializer):
         value = value.upper().strip()
         request = self.context.get("request")
         if request and request.user:
-            qs = Product.objects.filter(owner=request.user, sku=value)
+            qs = Product.objects.filter(organization=request.user.organization, sku=value)
             if self.instance:
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
@@ -46,7 +46,7 @@ class StockSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context["request"]
         product = attrs.get("product") or (self.instance.product if self.instance else None)
-        if product and product.owner != request.user:
+        if product and product.organization_id != request.user.organization_id:
             raise serializers.ValidationError({"product": "Product not found."})
         return attrs
 

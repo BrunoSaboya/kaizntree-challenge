@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import models
 
 
@@ -11,8 +10,8 @@ class UnitType(models.TextChoices):
 
 
 class Product(models.Model):
-    owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    organization = models.ForeignKey(
+        "users.Organization",
         on_delete=models.CASCADE,
         related_name="products",
     )
@@ -26,7 +25,7 @@ class Product(models.Model):
 
     class Meta:
         db_table = "products"
-        unique_together = [("owner", "sku")]
+        unique_together = [("organization", "sku")]
         ordering = ["-created_at"]
 
     def __str__(self):
@@ -34,8 +33,8 @@ class Product(models.Model):
 
 
 class Stock(models.Model):
-    owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    organization = models.ForeignKey(
+        "users.Organization",
         on_delete=models.CASCADE,
         related_name="stock_entries",
     )
@@ -49,7 +48,7 @@ class Stock(models.Model):
 
     class Meta:
         db_table = "stock"
-        unique_together = [("owner", "product", "identifier")]
+        unique_together = [("organization", "product", "identifier")]
         ordering = ["-created_at"]
 
     def __str__(self):
@@ -64,8 +63,8 @@ class MovementType(models.TextChoices):
 
 
 class StockMovement(models.Model):
-    owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    organization = models.ForeignKey(
+        "users.Organization",
         on_delete=models.CASCADE,
         related_name="stock_movements",
     )

@@ -12,7 +12,7 @@ class PurchaseOrderFactory(DjangoModelFactory):
     class Meta:
         model = PurchaseOrder
 
-    owner = factory.LazyAttribute(lambda o: o.product.owner)
+    organization = factory.LazyAttribute(lambda o: o.product.organization)
     product = factory.SubFactory(ProductFactory)
     quantity = Decimal("100.000")
     cost_per_unit = Decimal("1.0000")
@@ -24,9 +24,13 @@ class SalesOrderFactory(DjangoModelFactory):
     class Meta:
         model = SalesOrder
 
-    owner = factory.LazyAttribute(lambda o: o.product.owner)
+    organization = factory.LazyAttribute(lambda o: o.product.organization)
     product = factory.SubFactory(ProductFactory)
-    stock = factory.SubFactory(StockFactory, product=factory.SelfAttribute("..product"), owner=factory.SelfAttribute("..owner"))
+    stock = factory.SubFactory(
+        StockFactory,
+        product=factory.SelfAttribute("..product"),
+        organization=factory.SelfAttribute("..organization"),
+    )
     quantity = Decimal("10.000")
     price_per_unit = Decimal("10.0000")
     status = OrderStatus.DRAFT

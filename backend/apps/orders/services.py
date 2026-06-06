@@ -8,9 +8,9 @@ from apps.inventory.models import MovementType, Stock, StockMovement
 from .models import OrderStatus, PurchaseOrder, SalesOrder
 
 
-def _record_movement(owner, stock, movement_type, quantity_change, reference_type, reference_id, notes=""):
+def _record_movement(organization, stock, movement_type, quantity_change, reference_type, reference_id, notes=""):
     StockMovement.objects.create(
-        owner=owner,
+        organization=organization,
         stock=stock,
         product=stock.product,
         movement_type=movement_type,
@@ -42,7 +42,7 @@ def confirm_purchase_order(
             defaults["notes"] = stock_notes
 
         stock, _ = Stock.objects.get_or_create(
-            owner=po.owner,
+            organization=po.organization,
             product=po.product,
             identifier=stock_identifier,
             defaults=defaults,
@@ -53,7 +53,7 @@ def confirm_purchase_order(
         stock.refresh_from_db()
 
         _record_movement(
-            owner=po.owner,
+            organization=po.organization,
             stock=stock,
             movement_type=MovementType.PURCHASE_CONFIRMED,
             quantity_change=po.quantity,
@@ -103,7 +103,7 @@ def confirm_sales_order(so: SalesOrder) -> SalesOrder:
         )
 
         _record_movement(
-            owner=so.owner,
+            organization=so.organization,
             stock=stock,
             movement_type=MovementType.SALES_CONFIRMED,
             quantity_change=-so.quantity,
@@ -128,7 +128,7 @@ def cancel_sales_order(so: SalesOrder) -> SalesOrder:
                 quantity=stock.quantity + so.quantity
             )
             _record_movement(
-                owner=so.owner,
+                organization=so.organization,
                 stock=stock,
                 movement_type=MovementType.SALES_CANCELLED,
                 quantity_change=so.quantity,

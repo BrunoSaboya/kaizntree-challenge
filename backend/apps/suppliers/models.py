@@ -1,10 +1,9 @@
-from django.conf import settings
 from django.db import models
 
 
 class Supplier(models.Model):
-    owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    organization = models.ForeignKey(
+        "users.Organization",
         on_delete=models.CASCADE,
         related_name="suppliers",
     )

@@ -1,6 +1,9 @@
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
+
+from apps.users.permissions import IsOrgUser
 
 from .services import AIServiceUnavailableError, parse_purchase_order_document
 
@@ -10,6 +13,7 @@ class AIWorkflowThrottle(UserRateThrottle):
 
 
 class ParsePurchaseOrderView(APIView):
+    permission_classes = [IsAuthenticated, IsOrgUser]
     throttle_classes = [AIWorkflowThrottle]
 
     def post(self, request):

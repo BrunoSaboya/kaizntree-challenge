@@ -1,13 +1,13 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, viewsets
 
-from apps.inventory.views import OwnedModelMixin
+from apps.inventory.views import OrgScopedMixin
 
 from .models import Supplier
 from .serializers import SupplierSerializer
 
 
-class SupplierViewSet(OwnedModelMixin, viewsets.ModelViewSet):
+class SupplierViewSet(OrgScopedMixin, viewsets.ModelViewSet):
     serializer_class = SupplierSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["active"]
@@ -16,4 +16,4 @@ class SupplierViewSet(OwnedModelMixin, viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        return Supplier.objects.filter(owner=self.request.user)
+        return Supplier.objects.filter(organization=self.request.user.organization)

@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.inventory.tests.factories import UserFactory
+from apps.inventory.tests.factories import OrganizationFactory, UserFactory
 from apps.suppliers.models import Supplier
 
 
@@ -13,8 +13,16 @@ def client():
 
 
 @pytest.fixture
-def user():
-    return UserFactory()
+def org(db):
+    return OrganizationFactory()
+
+
+@pytest.fixture
+def user(db, org):
+    u = UserFactory(organization=org)
+    org.owner = u
+    org.save()
+    return u
 
 
 @pytest.fixture
@@ -26,9 +34,9 @@ def auth_client(client, user):
 
 
 @pytest.fixture
-def supplier(user):
+def supplier(user, org):
     return Supplier.objects.create(
-        owner=user,
+        organization=org,
         name="Acme Farms",
         email="orders@acmefarms.com",
         phone="+1-555-0100",
@@ -80,9 +88,9 @@ class TestSupplierCRUD:
         assert resp.status_code == status.HTTP_201_CREATED
         assert resp.data["name"] == "Organic Co"
 
-    def test_filter_by_active(self, auth_client, user):
-        Supplier.objects.create(owner=user, name="Active Co", active=True)
-        Supplier.objects.create(owner=user, name="Inactive Co", active=False)
+    def test_filter_by_active(self, auth_client, user, org):
+        Supplier.objects.create(organization=org, name="Active Co", active=True)
+        Supplier.objects.create(organization=org, name="Inactive Co", active=False)
         resp = auth_client.get(reverse("supplier-list") + "?active=true")
         assert resp.status_code == status.HTTP_200_OK
         names = [s["name"] for s in resp.data["results"]]
@@ -92,16 +100,16 @@ class TestSupplierCRUD:
 
 @pytest.mark.django_db
 class TestSupplierDataIsolation:
-    def test_cannot_see_other_users_suppliers(self, auth_client, user):
-        other_user = UserFactory()
-        Supplier.objects.create(owner=other_user, name="Other Corp")
+    def test_cannot_see_other_org_suppliers(self, auth_client, user):
+        other_org = OrganizationFactory()
+        Supplier.objects.create(organization=other_org, name="Other Corp")
         resp = auth_client.get(reverse("supplier-list"))
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data["count"] == 0
 
-    def test_cannot_access_other_users_supplier_detail(self, auth_client, user):
-        other_user = UserFactory()
-        other_supplier = Supplier.objects.create(owner=other_user, name="Other Corp")
+    def test_cannot_access_other_org_supplier_detail(self, auth_client, user):
+        other_org = OrganizationFactory()
+        other_supplier = Supplier.objects.create(organization=other_org, name="Other Corp")
         resp = auth_client.get(reverse("supplier-detail", args=[other_supplier.pk]))
         assert resp.status_code == status.HTTP_404_NOT_FOUND
 

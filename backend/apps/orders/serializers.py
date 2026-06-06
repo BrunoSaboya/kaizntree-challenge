@@ -24,7 +24,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context["request"]
         product = attrs.get("product") or (self.instance.product if self.instance else None)
-        if product and product.owner != request.user:
+        if product and product.organization_id != request.user.organization_id:
             raise serializers.ValidationError({"product": "Product not found."})
         return attrs
 
@@ -64,11 +64,11 @@ class SalesOrderSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context["request"]
         product = attrs.get("product") or (self.instance.product if self.instance else None)
-        if product and product.owner != request.user:
+        if product and product.organization_id != request.user.organization_id:
             raise serializers.ValidationError({"product": "Product not found."})
 
         stock = attrs.get("stock") or (self.instance.stock if self.instance else None)
-        if stock and stock.owner != request.user:
+        if stock and stock.organization_id != request.user.organization_id:
             raise serializers.ValidationError({"stock": "Stock not found."})
 
         if stock and product and stock.product != product:
