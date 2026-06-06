@@ -10,12 +10,12 @@ A full-stack, multi-tenant inventory management platform for F&B CPG brands, bui
 | **API** | https://kaizntree-challenge-production.up.railway.app/api/v1/ |
 | **Swagger UI** | https://kaizntree-challenge-production.up.railway.app/api/schema/swagger-ui/ |
 
-A pre-seeded demo account is available with realistic CPG data (products, confirmed orders, financials, stock movements):
+Two seeded demo account is available with realistic CPG data (products, confirmed orders, financials, stock movements):
 
 | Field | Value |
-|---|---|
-| **Email** | `demo@kaizntree.com` |
-| **Password** | `demo1234` |
+|---|---|---|
+| **Email** | `demo@kaizntree.com` | `owner@drinkco.com` |
+| **Password** | `demo1234` | `password123` |
 
 ## Quick Start
 
