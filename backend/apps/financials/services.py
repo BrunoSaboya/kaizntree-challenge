@@ -74,52 +74,14 @@ def get_financials_queryset(org):
     )
 
 
-def _get_cogs_by_product(org) -> dict:
-    """
-    Compute COGS per product by tracing each confirmed SO to the cost basis of
-    its stock lot: COGS = SO.quantity × lot_weighted_avg_cost.
-
-    lot_weighted_avg_cost = sum(PO.quantity × PO.cost_per_unit) / sum(PO.quantity)
-    for all confirmed POs linked to the same stock lot.
-    """
-    lot_avg_cost_sq = (
-        PurchaseOrder.objects.filter(stock_id=OuterRef("stock_id"), status="confirmed")
-        .values("stock_id")
-        .annotate(
-            avg=ExpressionWrapper(
-                Sum(F("quantity") * F("cost_per_unit")) / Sum("quantity"),
-                output_field=DecimalField(max_digits=20, decimal_places=4),
-            )
-        )
-        .values("avg")[:1]
-    )
-
-    so_cogs_expr = ExpressionWrapper(
-        F("quantity") * F("lot_avg_cost"),
-        output_field=DecimalField(max_digits=20, decimal_places=4),
-    )
-
-    rows = (
-        SalesOrder.objects.filter(
-            product__organization=org,
-            status="confirmed",
-            stock__isnull=False,
-        )
-        .annotate(lot_avg_cost=Subquery(lot_avg_cost_sq))
-        .annotate(so_cogs=so_cogs_expr)
-        .values("product_id")
-        .annotate(cogs=Sum("so_cogs"))
-    )
-
-    return {r["product_id"]: r["cogs"] or Decimal("0") for r in rows}
-
-
-def _build_product_row(product, cogs: Decimal) -> dict:
+def _build_product_row(product) -> dict:
     cost = product.total_cost or Decimal("0")
     revenue = product.total_revenue or Decimal("0")
     units_purchased = product.units_purchased or Decimal("0")
+    units_sold = product.units_sold or Decimal("0")
     current_stock = product.current_stock or Decimal("0")
     avg_unit_cost = cost / units_purchased if units_purchased > 0 else Decimal("0")
+    cogs = units_sold * avg_unit_cost
     inventory_value = current_stock * avg_unit_cost
     profit = revenue - cogs
     margin_pct = (profit / revenue * 100) if revenue > 0 else None
@@ -136,7 +98,7 @@ def _build_product_row(product, cogs: Decimal) -> dict:
         "profit": _round(profit),
         "margin_pct": _round(margin_pct),
         "units_purchased": _round(units_purchased, 3),
-        "units_sold": _round(product.units_sold, 3),
+        "units_sold": _round(units_sold, 3),
         "current_stock": _round(current_stock, 3),
         "inventory_value": _round(inventory_value),
     }
@@ -147,16 +109,11 @@ def get_product_financials(org, product_id: int) -> dict:
     product = qs.first()
     if product is None:
         return {}
-    cogs_map = _get_cogs_by_product(org)
-    return _build_product_row(product, cogs_map.get(product_id, Decimal("0")))
+    return _build_product_row(product)
 
 
 def get_all_product_financials(org) -> list[dict]:
-    cogs_map = _get_cogs_by_product(org)
-    return [
-        _build_product_row(p, cogs_map.get(p.pk, Decimal("0")))
-        for p in get_financials_queryset(org)
-    ]
+    return [_build_product_row(p) for p in get_financials_queryset(org)]
 
 
 def get_summary(org) -> dict:

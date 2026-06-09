@@ -96,22 +96,27 @@ class TestFinancialCalculations:
         assert summary["total_profit"] == Decimal("300.00")
         assert summary["product_count"] == 2
 
-    def test_multi_lot_cogs(self, db):
-        """COGS traced per lot: sells from different lots with different costs."""
+    def test_multi_lot_cogs_uses_product_average(self, db):
+        """COGS uses product-level WAC so that COGS + inventory_value = total_cost."""
         product = ProductFactory()
         po1 = make_confirmed_po(product, Decimal("50"), Decimal("2.0000"))   # LOT-A @ $2
         po2 = make_confirmed_po(product, Decimal("100"), Decimal("3.0000"))  # LOT-B @ $3
         make_confirmed_so(product, po1.stock, Decimal("20"), Decimal("5.0000"))  # 20 from LOT-A
         make_confirmed_so(product, po2.stock, Decimal("30"), Decimal("5.0000"))  # 30 from LOT-B
 
+        # avg_unit_cost = $400 / 150 = $2.6667
+        # cogs          = 50 × $2.6667 = $133.33
+        # inventory     = 100 × $2.6667 = $266.67
+        # cogs + inv    = $400 = total_cost ✓
+
         rows = get_all_product_financials(product.organization)
         row = rows[0]
-        assert row["total_cost"] == Decimal("400.00")   # 50×$2 + 100×$3
-        assert row["total_revenue"] == Decimal("250.00")  # 20×$5 + 30×$5
-        # lot-level COGS: 20×$2 + 30×$3 = $40 + $90 = $130
-        # (product-level avg would give $400/150 × 50 ≈ $133.33 — different)
-        assert row["cogs"] == Decimal("130.00")
-        assert row["profit"] == Decimal("120.00")  # $250 - $130
+        assert row["total_cost"] == Decimal("400.00")
+        assert row["total_revenue"] == Decimal("250.00")
+        assert row["cogs"] == Decimal("133.33")
+        assert row["inventory_value"] == Decimal("266.67")
+        # accounting identity holds (within rounding)
+        assert row["cogs"] + row["inventory_value"] == Decimal("400.00")
 
     def test_data_isolation(self, db):
         org1 = OrganizationFactory()
