@@ -1,7 +1,8 @@
 from decimal import Decimal
 from typing import Optional
 
-from django.db.models import DecimalField, ExpressionWrapper, F, OuterRef, Q, Subquery, Sum
+from django.db.models import DecimalField, ExpressionWrapper, F, OuterRef, Subquery, Sum
+from django.db.models.functions import Coalesce
 
 from apps.inventory.models import Product, Stock
 from apps.orders.models import PurchaseOrder, SalesOrder
@@ -16,34 +17,60 @@ def _round(value: Optional[Decimal], places: int = 2) -> Optional[Decimal]:
 def get_financials_queryset(org):
     """
     Returns a queryset of Products annotated with financial aggregates.
-    All aggregation happens in a single DB query.
+    Each aggregate uses an independent correlated subquery to avoid the
+    Cartesian product that occurs when joining multiple one-to-many relations
+    (purchase_orders, sales_orders, stock_entries) on the same product row.
     """
-    cost_expr = ExpressionWrapper(
-        F("purchase_orders__quantity") * F("purchase_orders__cost_per_unit"),
-        output_field=DecimalField(max_digits=20, decimal_places=4),
-    )
-    revenue_expr = ExpressionWrapper(
-        F("sales_orders__quantity") * F("sales_orders__price_per_unit"),
-        output_field=DecimalField(max_digits=20, decimal_places=4),
+    dec20_4 = DecimalField(max_digits=20, decimal_places=4)
+    dec12_3 = DecimalField(max_digits=12, decimal_places=3)
+    zero = Decimal("0")
+
+    total_cost_sq = Subquery(
+        PurchaseOrder.objects.filter(product_id=OuterRef("pk"), status="confirmed")
+        .values("product_id")
+        .annotate(val=Sum(ExpressionWrapper(F("quantity") * F("cost_per_unit"), output_field=dec20_4)))
+        .values("val")[:1],
+        output_field=dec20_4,
     )
 
-    return (
-        Product.objects.filter(organization=org)
-        .annotate(
-            total_cost=Sum(cost_expr, filter=Q(purchase_orders__status="confirmed"), default=Decimal("0")),
-            total_revenue=Sum(revenue_expr, filter=Q(sales_orders__status="confirmed"), default=Decimal("0")),
-            units_purchased=Sum(
-                "purchase_orders__quantity",
-                filter=Q(purchase_orders__status="confirmed"),
-                default=Decimal("0"),
-            ),
-            units_sold=Sum(
-                "sales_orders__quantity",
-                filter=Q(sales_orders__status="confirmed"),
-                default=Decimal("0"),
-            ),
-            current_stock=Sum("stock_entries__quantity", default=Decimal("0")),
-        )
+    total_revenue_sq = Subquery(
+        SalesOrder.objects.filter(product_id=OuterRef("pk"), status="confirmed")
+        .values("product_id")
+        .annotate(val=Sum(ExpressionWrapper(F("quantity") * F("price_per_unit"), output_field=dec20_4)))
+        .values("val")[:1],
+        output_field=dec20_4,
+    )
+
+    units_purchased_sq = Subquery(
+        PurchaseOrder.objects.filter(product_id=OuterRef("pk"), status="confirmed")
+        .values("product_id")
+        .annotate(val=Sum("quantity"))
+        .values("val")[:1],
+        output_field=dec12_3,
+    )
+
+    units_sold_sq = Subquery(
+        SalesOrder.objects.filter(product_id=OuterRef("pk"), status="confirmed")
+        .values("product_id")
+        .annotate(val=Sum("quantity"))
+        .values("val")[:1],
+        output_field=dec12_3,
+    )
+
+    current_stock_sq = Subquery(
+        Stock.objects.filter(product_id=OuterRef("pk"))
+        .values("product_id")
+        .annotate(val=Sum("quantity"))
+        .values("val")[:1],
+        output_field=dec12_3,
+    )
+
+    return Product.objects.filter(organization=org).annotate(
+        total_cost=Coalesce(total_cost_sq, zero),
+        total_revenue=Coalesce(total_revenue_sq, zero),
+        units_purchased=Coalesce(units_purchased_sq, zero),
+        units_sold=Coalesce(units_sold_sq, zero),
+        current_stock=Coalesce(current_stock_sq, zero),
     )
 
 

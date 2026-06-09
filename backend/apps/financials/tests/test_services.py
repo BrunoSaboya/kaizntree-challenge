@@ -106,9 +106,12 @@ class TestFinancialCalculations:
 
         rows = get_all_product_financials(product.organization)
         row = rows[0]
-        # lot-level: 20×$2 + 30×$3 = $40 + $90 = $130
-        # (product-level avg would give ($100+$300)/150 × 50 ≈ $133.33 — different)
+        assert row["total_cost"] == Decimal("400.00")   # 50×$2 + 100×$3
+        assert row["total_revenue"] == Decimal("250.00")  # 20×$5 + 30×$5
+        # lot-level COGS: 20×$2 + 30×$3 = $40 + $90 = $130
+        # (product-level avg would give $400/150 × 50 ≈ $133.33 — different)
         assert row["cogs"] == Decimal("130.00")
+        assert row["profit"] == Decimal("120.00")  # $250 - $130
 
     def test_data_isolation(self, db):
         org1 = OrganizationFactory()
