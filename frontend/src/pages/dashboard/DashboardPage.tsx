@@ -567,6 +567,26 @@ export default function DashboardPage() {
                 );
               })}
             </Table.Tbody>
+            {summary && (
+              <Table.Tfoot>
+                <Table.Tr fw={600} bg="gray.0">
+                  <Table.Td colSpan={2}>Total</Table.Td>
+                  <Table.Td ta="right">{formatCurrency(summary.total_cogs)}</Table.Td>
+                  <Table.Td ta="right">{formatCurrency(summary.total_revenue)}</Table.Td>
+                  <Table.Td ta="right" c={parseFloat(summary.total_profit) >= 0 ? "green" : "red"}>
+                    {formatCurrency(summary.total_profit)}
+                  </Table.Td>
+                  <Table.Td ta="right">
+                    {summary.overall_margin_pct != null ? (
+                      <Badge color={parseFloat(summary.overall_margin_pct) >= 0 ? "green" : "red"} variant="light">
+                        {formatPercent(summary.overall_margin_pct)}
+                      </Badge>
+                    ) : "—"}
+                  </Table.Td>
+                  <Table.Td />
+                </Table.Tr>
+              </Table.Tfoot>
+            )}
           </Table>
         </Card>
       )}

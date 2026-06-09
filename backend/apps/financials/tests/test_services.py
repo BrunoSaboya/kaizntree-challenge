@@ -96,6 +96,20 @@ class TestFinancialCalculations:
         assert summary["total_profit"] == Decimal("300.00")
         assert summary["product_count"] == 2
 
+    def test_multi_lot_cogs(self, db):
+        """COGS traced per lot: sells from different lots with different costs."""
+        product = ProductFactory()
+        po1 = make_confirmed_po(product, Decimal("50"), Decimal("2.0000"))   # LOT-A @ $2
+        po2 = make_confirmed_po(product, Decimal("100"), Decimal("3.0000"))  # LOT-B @ $3
+        make_confirmed_so(product, po1.stock, Decimal("20"), Decimal("5.0000"))  # 20 from LOT-A
+        make_confirmed_so(product, po2.stock, Decimal("30"), Decimal("5.0000"))  # 30 from LOT-B
+
+        rows = get_all_product_financials(product.organization)
+        row = rows[0]
+        # lot-level: 20×$2 + 30×$3 = $40 + $90 = $130
+        # (product-level avg would give ($100+$300)/150 × 50 ≈ $133.33 — different)
+        assert row["cogs"] == Decimal("130.00")
+
     def test_data_isolation(self, db):
         org1 = OrganizationFactory()
         org2 = OrganizationFactory()
