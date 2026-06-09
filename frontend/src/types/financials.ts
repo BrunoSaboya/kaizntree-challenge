@@ -5,6 +5,7 @@ export interface ProductFinancials {
   unit_type: string;
   min_stock_quantity: number;
   total_cost: string;
+  cogs: string;
   total_revenue: string;
   profit: string;
   margin_pct: string | null;
@@ -16,6 +17,7 @@ export interface ProductFinancials {
 
 export interface FinancialSummary {
   total_cost: string;
+  total_cogs: string;
   total_revenue: string;
   total_profit: string;
   overall_margin_pct: string | null;

@@ -49,12 +49,13 @@ def get_financials_queryset(org):
 def _build_product_row(product) -> dict:
     cost = product.total_cost or Decimal("0")
     revenue = product.total_revenue or Decimal("0")
-    profit = revenue - cost
-    margin_pct = (profit / cost * 100) if cost > 0 else None
     units_purchased = product.units_purchased or Decimal("0")
     current_stock = product.current_stock or Decimal("0")
     avg_unit_cost = cost / units_purchased if units_purchased > 0 else Decimal("0")
     inventory_value = current_stock * avg_unit_cost
+    cogs = cost - inventory_value
+    profit = revenue - cogs
+    margin_pct = (profit / revenue * 100) if revenue > 0 else None
 
     return {
         "product_id": product.pk,
@@ -63,6 +64,7 @@ def _build_product_row(product) -> dict:
         "unit_type": product.unit_type,
         "min_stock_quantity": product.min_stock_quantity,
         "total_cost": _round(cost),
+        "cogs": _round(cogs),
         "total_revenue": _round(revenue),
         "profit": _round(profit),
         "margin_pct": _round(margin_pct),
@@ -89,14 +91,16 @@ def get_summary(org) -> dict:
     rows = get_all_product_financials(org)
     zero = Decimal("0")
     total_cost = sum((r["total_cost"] or zero for r in rows), zero)
+    total_cogs = sum((r["cogs"] or zero for r in rows), zero)
     total_revenue = sum((r["total_revenue"] or zero for r in rows), zero)
-    total_profit = total_revenue - total_cost
-    overall_margin = (total_profit / total_cost * 100) if total_cost > 0 else None
+    total_profit = total_revenue - total_cogs
+    overall_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else None
 
     total_inventory_value = sum((r["inventory_value"] or zero for r in rows), zero)
 
     return {
         "total_cost": _round(total_cost),
+        "total_cogs": _round(total_cogs),
         "total_revenue": _round(total_revenue),
         "total_profit": _round(total_profit),
         "overall_margin_pct": _round(overall_margin),

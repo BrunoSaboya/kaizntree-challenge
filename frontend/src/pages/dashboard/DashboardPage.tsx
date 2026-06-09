@@ -386,7 +386,7 @@ export default function DashboardPage() {
     .map((p) => ({
       product: p.product_name.length > 14 ? p.product_name.slice(0, 13) + "…" : p.product_name,
       Revenue: parseFloat(p.total_revenue),
-      Cost: parseFloat(p.total_cost),
+      Cost: parseFloat(p.cogs),
       Profit: parseFloat(p.profit),
     }));
 
@@ -440,7 +440,7 @@ export default function DashboardPage() {
 
       <SimpleGrid cols={{ base: 1, sm: 2, md: 5 }}>
         <SummaryCard label="Total Revenue" value={formatCurrency(summary?.total_revenue)} color="brand" />
-        <SummaryCard label="Total Cost" value={formatCurrency(summary?.total_cost)} />
+        <SummaryCard label="COGS" value={formatCurrency(summary?.total_cogs)} />
         <SummaryCard label="Total Profit" value={formatCurrency(summary?.total_profit)} color={profitColor} />
         <SummaryCard
           label="Overall Margin"
@@ -525,7 +525,7 @@ export default function DashboardPage() {
               <Table.Tr>
                 <Table.Th>Product</Table.Th>
                 <Table.Th>SKU</Table.Th>
-                <Table.Th ta="right">Cost</Table.Th>
+                <Table.Th ta="right">COGS</Table.Th>
                 <Table.Th ta="right">Revenue</Table.Th>
                 <Table.Th ta="right">Profit</Table.Th>
                 <Table.Th ta="right">Margin</Table.Th>
@@ -546,7 +546,7 @@ export default function DashboardPage() {
                         {p.sku}
                       </Badge>
                     </Table.Td>
-                    <Table.Td ta="right">{formatCurrency(p.total_cost)}</Table.Td>
+                    <Table.Td ta="right">{formatCurrency(p.cogs)}</Table.Td>
                     <Table.Td ta="right">{formatCurrency(p.total_revenue)}</Table.Td>
                     <Table.Td ta="right" c={parseFloat(p.profit) >= 0 ? "green" : "red"}>
                       {formatCurrency(p.profit)}

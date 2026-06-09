@@ -35,7 +35,7 @@ def make_confirmed_so(product, stock, quantity, price_per_unit):
 @pytest.mark.django_db
 class TestFinancialCalculations:
     def test_profit_and_margin(self, db):
-        """100 units @ $1 cost, 90 sold @ $10 → profit=$800, margin=800%"""
+        """100 units @ $1 cost, 90 sold @ $10 → cogs=$90, profit=$810, margin=90%"""
         product = ProductFactory()
         po = make_confirmed_po(product, Decimal("100"), Decimal("1.0000"))
         stock = po.stock
@@ -45,18 +45,21 @@ class TestFinancialCalculations:
         assert len(rows) == 1
         row = rows[0]
         assert row["total_cost"] == Decimal("100.00")
+        assert row["cogs"] == Decimal("90.00")    # 90 sold × $1 avg cost
         assert row["total_revenue"] == Decimal("900.00")
-        assert row["profit"] == Decimal("800.00")
-        assert row["margin_pct"] == Decimal("800.00")
+        assert row["profit"] == Decimal("810.00")
+        assert row["margin_pct"] == Decimal("90.00")
 
     def test_zero_sales(self, db):
+        """No sales → COGS=0 (all purchased units remain in stock), profit=0"""
         product = ProductFactory()
         make_confirmed_po(product, Decimal("50"), Decimal("2.0000"))
         rows = get_all_product_financials(product.organization)
         row = rows[0]
         assert row["total_cost"] == Decimal("100.00")
+        assert row["cogs"] == Decimal("0.00")
         assert row["total_revenue"] == Decimal("0.00")
-        assert row["profit"] == Decimal("-100.00")
+        assert row["profit"] == Decimal("0.00")
 
     def test_zero_cost_margin_is_none(self, db):
         product = ProductFactory()
@@ -87,7 +90,8 @@ class TestFinancialCalculations:
         make_confirmed_so(p2, po2.stock, Decimal("50"), Decimal("8.0000"))
 
         summary = get_summary(org)
-        assert summary["total_cost"] == Decimal("300.00")   # 100 + 200
+        assert summary["total_cost"] == Decimal("300.00")    # 100 + 200 (procurement cost)
+        assert summary["total_cogs"] == Decimal("300.00")    # all units sold, so COGS = total_cost
         assert summary["total_revenue"] == Decimal("600.00")  # 200 + 400
         assert summary["total_profit"] == Decimal("300.00")
         assert summary["product_count"] == 2
